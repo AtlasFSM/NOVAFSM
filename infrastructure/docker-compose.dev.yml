@@ -1,0 +1,88 @@
+version: '3.9'
+
+services:
+  postgres:
+    image: postgis/postgis:15-3.4-alpine
+    container_name: novafsm-postgres
+    environment:
+      POSTGRES_USER: novafsm
+      POSTGRES_PASSWORD: novafsm_dev_pass
+      POSTGRES_DB: novafsm
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-scripts/postgres:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U novafsm"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - novafsm-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: novafsm-redis
+    command: redis-server --appendonly yes
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks:
+      - novafsm-network
+
+  minio:
+    image: minio/minio:latest
+    container_name: novafsm-minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+    networks:
+      - novafsm-network
+
+  # MinIO bucket creation
+  minio-setup:
+    image: minio/mc:latest
+    container_name: novafsm-minio-setup
+    depends_on:
+      - minio
+    entrypoint: >
+      /bin/sh -c "
+      sleep 5;
+      mc alias set novafsm http://minio:9000 minioadmin minioadmin;
+      mc mb novafsm/novafsm-uploads --ignore-existing;
+      mc anonymous set download novafsm/novafsm-uploads;
+      echo 'MinIO bucket setup complete';
+      "
+    networks:
+      - novafsm-network
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  minio_data:
+    driver: local
+
+networks:
+  novafsm-network:
+    driver: bridge

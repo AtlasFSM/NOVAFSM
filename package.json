@@ -1,0 +1,43 @@
+{
+  "name": "novafsm-monorepo",
+  "version": "1.0.0",
+  "description": "Multi-tenant ERP-grade Field Service Management platform",
+  "private": true,
+  "workspaces": [
+    "backend",
+    "web-dashboard",
+    "mobile"
+  ],
+  "scripts": {
+    "install:all": "npm ci && npm ci --workspaces",
+    "dev:backend": "npm run start:dev --workspace=backend",
+    "dev:web": "npm run dev --workspace=web-dashboard",
+    "dev:mobile": "npm run start --workspace=mobile",
+    "build:all": "npm run build --workspaces --if-present",
+    "test:all": "npm run test --workspaces --if-present",
+    "lint:all": "npm run lint --workspaces --if-present",
+    "clean": "npm run clean --workspaces --if-present && rm -rf node_modules",
+    "infra:up": "docker compose -f infrastructure/docker-compose.dev.yml up -d",
+    "infra:down": "docker compose -f infrastructure/docker-compose.dev.yml down",
+    "infra:logs": "docker compose -f infrastructure/docker-compose.dev.yml logs -f"
+  },
+  "keywords": [
+    "fsm",
+    "field-service",
+    "erp",
+    "multi-tenant",
+    "nestjs",
+    "nextjs",
+    "react-native"
+  ],
+  "author": "NoVaFSM Team",
+  "license": "UNLICENSED",
+  "engines": {
+    "node": ">=20.0.0",
+    "npm": ">=10.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "typescript": "^5.3.3"
+  }
+}
