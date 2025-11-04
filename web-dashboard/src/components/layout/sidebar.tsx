@@ -11,6 +11,7 @@ import {
   Receipt,
   Package,
   Settings,
+  BarChart3,
   ChevronLeft,
   ChevronRight,
 } from 'lucide-react';
@@ -30,6 +31,7 @@ const navItems = [
   { href: '/dashboard/schedule', icon: Calendar, label: 'Schedule' },
   { href: '/dashboard/invoices', icon: Receipt, label: 'Invoices' },
   { href: '/dashboard/inventory', icon: Package, label: 'Inventory' },
+  { href: '/dashboard/reports', icon: BarChart3, label: 'Reports' },
   { href: '/dashboard/settings', icon: Settings, label: 'Settings' },
 ];
 
