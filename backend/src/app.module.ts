@@ -22,6 +22,10 @@ import { TimeExpenseModule } from './modules/time-expense/time-expense.module';
 import { FilesModule } from './modules/files/files.module';
 import { AuditModule } from './modules/audit/audit.module';
 import { OutboxModule } from './modules/outbox/outbox.module';
+import { EmailModule } from './modules/email/email.module';
+import { OrganizationsModule } from './modules/organizations/organizations.module';
+import { SitesModule } from './modules/sites/sites.module';
+import { ScheduleModule } from './modules/schedule/schedule.module';
 
 @Module({
   imports: [
@@ -69,6 +73,10 @@ import { OutboxModule } from './modules/outbox/outbox.module';
     FilesModule,
     AuditModule,
     OutboxModule,
+    EmailModule,
+    OrganizationsModule,
+    SitesModule,
+    ScheduleModule,
   ],
   providers: [
     // Global guards
