@@ -1,0 +1,556 @@
+name: CI/CD Pipeline
+
+# ============================================
+# Triggers
+# ============================================
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+  pull_request:
+    branches:
+      - main
+
+# ============================================
+# Required GitHub Secrets
+# ============================================
+# AWS Deployment:
+#   - AWS_ACCESS_KEY_ID: AWS access key for ECR and EKS
+#   - AWS_SECRET_ACCESS_KEY: AWS secret key
+#   - AWS_REGION: AWS region (default: us-east-1)
+#   - ECR_REPOSITORY_API: Full ECR repository URL for API (e.g., 123456789.dkr.ecr.us-east-1.amazonaws.com/novafsm-api)
+#   - ECR_REPOSITORY_WEB: Full ECR repository URL for web dashboard
+#   - EKS_CLUSTER_NAME: Name of the EKS cluster
+#
+# Security Scanning:
+#   - SNYK_TOKEN: Snyk API token for security scanning
+#   - CODECOV_TOKEN: Codecov token for coverage upload
+#
+# Notifications (optional):
+#   - SLACK_WEBHOOK_URL: Slack webhook URL for build notifications
+
+env:
+  NODE_VERSION: '20'
+  AWS_REGION: us-east-1
+
+jobs:
+  # ============================================
+  # Job 1: Backend Lint and Test
+  # ============================================
+  backend-lint-and-test:
+    name: Backend - Lint, Type Check & Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: backend
+        run: npm ci
+
+      - name: Generate Prisma Client
+        working-directory: backend
+        run: npx prisma generate
+
+      - name: Run ESLint
+        working-directory: backend
+        run: npm run lint
+
+      - name: Run TypeScript type check
+        working-directory: backend
+        run: npm run typecheck
+
+      - name: Run unit tests
+        working-directory: backend
+        run: npm run test -- --coverage --coverageReporters=json --coverageReporters=lcov
+
+      - name: Run integration tests
+        working-directory: backend
+        run: npm run test:integration
+        env:
+          # Testcontainers will automatically start required services
+          NODE_ENV: test
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        if: always()
+        with:
+          files: ./backend/coverage/lcov.info
+          flags: backend
+          name: backend-coverage
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: false
+
+      - name: Archive test results
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-test-results
+          path: backend/coverage/
+          retention-days: 7
+
+  # ============================================
+  # Job 2: Frontend Lint and Test
+  # ============================================
+  frontend-lint-and-test:
+    name: Frontend - Lint, Type Check & Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: web-dashboard/package-lock.json
+
+      - name: Install dependencies
+        working-directory: web-dashboard
+        run: npm ci
+
+      - name: Run ESLint
+        working-directory: web-dashboard
+        run: npm run lint
+
+      - name: Run TypeScript type check
+        working-directory: web-dashboard
+        run: npm run typecheck
+
+      - name: Build production bundle
+        working-directory: web-dashboard
+        run: npm run build
+        env:
+          # Set dummy values for build-time env vars if needed
+          NEXT_PUBLIC_API_URL: https://api.novafsm.com
+
+      - name: Archive build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-build
+          path: web-dashboard/.next/
+          retention-days: 7
+
+  # ============================================
+  # Job 3: Security Scanning
+  # ============================================
+  security-scan:
+    name: Security Scanning
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      actions: read
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Snyk Security Scan - Backend
+        uses: snyk/actions/node@master
+        continue-on-error: true
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          args: --severity-threshold=high --file=backend/package.json --sarif-file-output=snyk-backend.sarif
+
+      - name: Run Snyk Security Scan - Frontend
+        uses: snyk/actions/node@master
+        continue-on-error: true
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          args: --severity-threshold=high --file=web-dashboard/package.json --sarif-file-output=snyk-frontend.sarif
+
+      - name: Upload Snyk results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: snyk-backend.sarif
+          category: snyk-backend
+
+      - name: Upload Snyk frontend results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: snyk-frontend.sarif
+          category: snyk-frontend
+
+      - name: Run Trivy filesystem scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: 'CRITICAL,HIGH'
+
+      - name: Upload Trivy results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: trivy-results.sarif
+          category: trivy-filesystem
+
+  # ============================================
+  # Job 4: Build and Push Docker Images
+  # ============================================
+  build-and-push-images:
+    name: Build and Push Docker Images
+    needs: [backend-lint-and-test, frontend-lint-and-test, security-scan]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    outputs:
+      api-image-tag: ${{ steps.image-info.outputs.api-tag }}
+      web-image-tag: ${{ steps.image-info.outputs.web-tag }}
+      api-image-digest: ${{ steps.build-api.outputs.digest }}
+      web-image-digest: ${{ steps.build-web.outputs.digest }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION || env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Extract image info
+        id: image-info
+        run: |
+          echo "api-tag=${{ github.sha }}" >> $GITHUB_OUTPUT
+          echo "web-tag=${{ github.sha }}" >> $GITHUB_OUTPUT
+
+      - name: Build and push API Docker image
+        id: build-api
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          file: ./backend/Dockerfile
+          push: true
+          tags: |
+            ${{ secrets.ECR_REPOSITORY_API }}:${{ github.sha }}
+            ${{ secrets.ECR_REPOSITORY_API }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          provenance: false
+
+      - name: Build and push Web Docker image
+        id: build-web
+        uses: docker/build-push-action@v5
+        with:
+          context: ./web-dashboard
+          file: ./web-dashboard/Dockerfile
+          push: true
+          tags: |
+            ${{ secrets.ECR_REPOSITORY_WEB }}:${{ github.sha }}
+            ${{ secrets.ECR_REPOSITORY_WEB }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          provenance: false
+
+      - name: Output image digests
+        run: |
+          echo "API Image Digest: ${{ steps.build-api.outputs.digest }}"
+          echo "Web Image Digest: ${{ steps.build-web.outputs.digest }}"
+          echo "API Image Tag: ${{ secrets.ECR_REPOSITORY_API }}:${{ github.sha }}"
+          echo "Web Image Tag: ${{ secrets.ECR_REPOSITORY_WEB }}:${{ github.sha }}"
+
+  # ============================================
+  # Job 5: Deploy to Staging
+  # ============================================
+  deploy-to-staging:
+    name: Deploy to Staging Environment
+    needs: build-and-push-images
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment:
+      name: staging
+      url: https://staging-api.novafsm.com
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION || env.AWS_REGION }}
+
+      - name: Update kubeconfig
+        run: |
+          aws eks update-kubeconfig --name ${{ secrets.EKS_CLUSTER_NAME }} --region ${{ secrets.AWS_REGION || env.AWS_REGION }}
+
+      - name: Verify kubectl connection
+        run: kubectl cluster-info
+
+      - name: Create namespace if not exists
+        run: kubectl create namespace staging --dry-run=client -o yaml | kubectl apply -f -
+
+      - name: Apply Kubernetes manifests
+        run: |
+          kubectl apply -f infrastructure/k8s/ -n staging
+
+      - name: Update API deployment image
+        run: |
+          kubectl set image deployment/novafsm-api \
+            novafsm-api=${{ secrets.ECR_REPOSITORY_API }}:${{ github.sha }} \
+            -n staging
+
+      - name: Update Web deployment image
+        run: |
+          kubectl set image deployment/novafsm-web \
+            novafsm-web=${{ secrets.ECR_REPOSITORY_WEB }}:${{ github.sha }} \
+            -n staging
+
+      - name: Wait for API rollout
+        run: |
+          kubectl rollout status deployment/novafsm-api -n staging --timeout=5m
+
+      - name: Wait for Web rollout
+        run: |
+          kubectl rollout status deployment/novafsm-web -n staging --timeout=5m
+
+      - name: Run smoke tests
+        run: |
+          echo "Running smoke tests against staging environment..."
+          # Wait for service to be ready
+          sleep 10
+          # Health check
+          kubectl run smoke-test-${{ github.sha }} \
+            --image=curlimages/curl:latest \
+            --rm -i --restart=Never \
+            --namespace=staging \
+            -- curl -f http://novafsm-api:3000/api/v1/health || exit 1
+
+      - name: Get deployment status
+        if: always()
+        run: |
+          echo "=== Deployment Status ==="
+          kubectl get deployments -n staging
+          kubectl get pods -n staging
+          kubectl get services -n staging
+
+  # ============================================
+  # Job 6: Deploy to Production
+  # ============================================
+  deploy-to-production:
+    name: Deploy to Production Environment
+    needs: deploy-to-staging
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://api.novafsm.com
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION || env.AWS_REGION }}
+
+      - name: Update kubeconfig
+        run: |
+          aws eks update-kubeconfig --name ${{ secrets.EKS_CLUSTER_NAME }} --region ${{ secrets.AWS_REGION || env.AWS_REGION }}
+
+      - name: Verify kubectl connection
+        run: kubectl cluster-info
+
+      - name: Create namespace if not exists
+        run: kubectl create namespace production --dry-run=client -o yaml | kubectl apply -f -
+
+      - name: Apply Kubernetes manifests
+        run: |
+          kubectl apply -f infrastructure/k8s/ -n production
+
+      - name: Update API deployment image
+        run: |
+          kubectl set image deployment/novafsm-api \
+            novafsm-api=${{ secrets.ECR_REPOSITORY_API }}:${{ github.sha }} \
+            -n production
+
+      - name: Update Web deployment image
+        run: |
+          kubectl set image deployment/novafsm-web \
+            novafsm-web=${{ secrets.ECR_REPOSITORY_WEB }}:${{ github.sha }} \
+            -n production
+
+      - name: Wait for API rollout
+        run: |
+          kubectl rollout status deployment/novafsm-api -n production --timeout=10m
+
+      - name: Wait for Web rollout
+        run: |
+          kubectl rollout status deployment/novafsm-web -n production --timeout=10m
+
+      - name: Run production smoke tests
+        run: |
+          echo "Running smoke tests against production environment..."
+          # Wait for service to be ready
+          sleep 15
+          # Health check
+          kubectl run smoke-test-${{ github.sha }} \
+            --image=curlimages/curl:latest \
+            --rm -i --restart=Never \
+            --namespace=production \
+            -- curl -f http://novafsm-api:3000/api/v1/health || exit 1
+
+      - name: Get deployment status
+        if: always()
+        run: |
+          echo "=== Production Deployment Status ==="
+          kubectl get deployments -n production
+          kubectl get pods -n production
+          kubectl get services -n production
+
+      - name: Extract version from tag
+        id: version
+        run: echo "version=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.version.outputs.version }}
+          release_name: Release ${{ steps.version.outputs.version }}
+          body: |
+            ## NoVaFSM Release ${{ steps.version.outputs.version }}
+
+            ### Deployed Images
+            - API: `${{ secrets.ECR_REPOSITORY_API }}:${{ github.sha }}`
+            - Web: `${{ secrets.ECR_REPOSITORY_WEB }}:${{ github.sha }}`
+
+            ### Deployment Information
+            - Deployed to: Production
+            - Commit: ${{ github.sha }}
+            - Timestamp: ${{ github.event.head_commit.timestamp }}
+
+            ### Changes
+            See commit history for detailed changes.
+          draft: false
+          prerelease: false
+
+  # ============================================
+  # Job 7: Slack Notification
+  # ============================================
+  notify-slack:
+    name: Send Slack Notification
+    needs: [backend-lint-and-test, frontend-lint-and-test, security-scan, build-and-push-images, deploy-to-staging, deploy-to-production]
+    if: always() && secrets.SLACK_WEBHOOK_URL != ''
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Determine workflow status
+        id: status
+        run: |
+          if [[ "${{ needs.backend-lint-and-test.result }}" == "failure" ]] || \
+             [[ "${{ needs.frontend-lint-and-test.result }}" == "failure" ]] || \
+             [[ "${{ needs.security-scan.result }}" == "failure" ]] || \
+             [[ "${{ needs.build-and-push-images.result }}" == "failure" ]] || \
+             [[ "${{ needs.deploy-to-staging.result }}" == "failure" ]] || \
+             [[ "${{ needs.deploy-to-production.result }}" == "failure" ]]; then
+            echo "status=failure" >> $GITHUB_OUTPUT
+            echo "color=#FF0000" >> $GITHUB_OUTPUT
+            echo "emoji=:x:" >> $GITHUB_OUTPUT
+          elif [[ "${{ needs.backend-lint-and-test.result }}" == "success" ]] && \
+               [[ "${{ needs.frontend-lint-and-test.result }}" == "success" ]]; then
+            echo "status=success" >> $GITHUB_OUTPUT
+            echo "color=#00FF00" >> $GITHUB_OUTPUT
+            echo "emoji=:white_check_mark:" >> $GITHUB_OUTPUT
+          else
+            echo "status=partial" >> $GITHUB_OUTPUT
+            echo "color=#FFA500" >> $GITHUB_OUTPUT
+            echo "emoji=:warning:" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Send Slack notification
+        uses: slackapi/slack-github-action@v1.25.0
+        with:
+          payload: |
+            {
+              "text": "${{ steps.status.outputs.emoji }} NoVaFSM CI/CD Pipeline - ${{ steps.status.outputs.status }}",
+              "attachments": [
+                {
+                  "color": "${{ steps.status.outputs.color }}",
+                  "fields": [
+                    {
+                      "title": "Repository",
+                      "value": "${{ github.repository }}",
+                      "short": true
+                    },
+                    {
+                      "title": "Branch/Tag",
+                      "value": "${{ github.ref_name }}",
+                      "short": true
+                    },
+                    {
+                      "title": "Commit",
+                      "value": "<${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}|${{ github.sha }}> ",
+                      "short": true
+                    },
+                    {
+                      "title": "Author",
+                      "value": "${{ github.actor }}",
+                      "short": true
+                    },
+                    {
+                      "title": "Backend Tests",
+                      "value": "${{ needs.backend-lint-and-test.result }}",
+                      "short": true
+                    },
+                    {
+                      "title": "Frontend Tests",
+                      "value": "${{ needs.frontend-lint-and-test.result }}",
+                      "short": true
+                    },
+                    {
+                      "title": "Security Scan",
+                      "value": "${{ needs.security-scan.result }}",
+                      "short": true
+                    },
+                    {
+                      "title": "Build & Push",
+                      "value": "${{ needs.build-and-push-images.result }}",
+                      "short": true
+                    },
+                    {
+                      "title": "Workflow",
+                      "value": "<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Details>",
+                      "short": false
+                    }
+                  ]
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK

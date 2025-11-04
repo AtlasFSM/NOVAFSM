@@ -1,0 +1,127 @@
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: novafsm-ingress
+  namespace: production
+  labels:
+    app: novafsm
+    environment: production
+  annotations:
+    # ALB Ingress Controller Configuration
+    kubernetes.io/ingress.class: alb
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'
+
+    # SSL/TLS Configuration
+    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:us-east-1:ACCOUNT_ID:certificate/CERTIFICATE_ID
+    alb.ingress.kubernetes.io/ssl-policy: ELBSecurityPolicy-TLS-1-2-2017-01
+    alb.ingress.kubernetes.io/ssl-redirect: "443"
+
+    # Health Check Configuration
+    alb.ingress.kubernetes.io/healthcheck-protocol: HTTP
+    alb.ingress.kubernetes.io/healthcheck-port: traffic-port
+    alb.ingress.kubernetes.io/healthcheck-path: /api/v1/health
+    alb.ingress.kubernetes.io/healthcheck-interval-seconds: "15"
+    alb.ingress.kubernetes.io/healthcheck-timeout-seconds: "5"
+    alb.ingress.kubernetes.io/healthy-threshold-count: "2"
+    alb.ingress.kubernetes.io/unhealthy-threshold-count: "2"
+
+    # Load Balancer Attributes
+    alb.ingress.kubernetes.io/load-balancer-attributes: |
+      idle_timeout.timeout_seconds=60,
+      deletion_protection.enabled=true,
+      http2.enabled=true,
+      access_logs.s3.enabled=true,
+      access_logs.s3.bucket=novafsm-alb-logs,
+      access_logs.s3.prefix=production
+
+    # Security Groups
+    alb.ingress.kubernetes.io/security-groups: sg-xxxxxxxxxxxxxxxxx
+
+    # Subnets (public subnets for internet-facing ALB)
+    alb.ingress.kubernetes.io/subnets: subnet-xxxxxxxxxxxxxxxxx,subnet-yyyyyyyyyyyyyyyyy,subnet-zzzzzzzzzzzzzzzzz
+
+    # Tags
+    alb.ingress.kubernetes.io/tags: |
+      Environment=production,
+      Application=novafsm,
+      ManagedBy=kubernetes
+
+    # Backend Protocol
+    alb.ingress.kubernetes.io/backend-protocol: HTTP
+
+    # Deregistration Delay
+    alb.ingress.kubernetes.io/target-group-attributes: |
+      deregistration_delay.timeout_seconds=30,
+      stickiness.enabled=false
+
+    # CORS (handled by backend, but can be added here if needed)
+    # alb.ingress.kubernetes.io/actions.ssl-redirect: |
+    #   {"Type": "redirect", "RedirectConfig": {"Protocol": "HTTPS", "Port": "443", "StatusCode": "HTTP_301"}}
+
+    # WAF (Web Application Firewall) - Optional
+    # alb.ingress.kubernetes.io/wafv2-acl-arn: arn:aws:wafv2:us-east-1:ACCOUNT_ID:regional/webacl/novafsm-waf/WEBACL_ID
+
+    # Shield Advanced - Optional
+    # alb.ingress.kubernetes.io/shield-advanced-protection: "true"
+
+spec:
+  ingressClassName: alb
+
+  rules:
+    # API Backend
+    - host: api.novafsm.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: novafsm-api
+                port:
+                  number: 3000
+
+    # Web Dashboard
+    - host: app.novafsm.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: novafsm-web
+                port:
+                  number: 3001
+
+  tls:
+    - hosts:
+        - api.novafsm.com
+        - app.novafsm.com
+      # secretName is not needed when using ACM with ALB
+      # The certificate is specified via annotation above
+
+---
+# ============================================================================
+# ALTERNATIVE: Cert-Manager with Let's Encrypt (if not using AWS ACM)
+# ============================================================================
+# If using cert-manager instead of AWS ACM, use this configuration:
+#
+# apiVersion: networking.k8s.io/v1
+# kind: Ingress
+# metadata:
+#   name: novafsm-ingress
+#   namespace: production
+#   annotations:
+#     cert-manager.io/cluster-issuer: letsencrypt-prod
+#     # ... other ALB annotations
+# spec:
+#   tls:
+#     - hosts:
+#         - api.novafsm.com
+#         - app.novafsm.com
+#       secretName: novafsm-tls-cert  # cert-manager will create this secret
+#   rules:
+#     # ... same as above
+# ============================================================================

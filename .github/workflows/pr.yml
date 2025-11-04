@@ -1,0 +1,361 @@
+name: Pull Request Checks
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches:
+      - main
+
+env:
+  NODE_VERSION: '20'
+
+# Permissions for PR comments
+permissions:
+  contents: read
+  pull-requests: write
+  checks: write
+
+jobs:
+  # ============================================
+  # Job 1: Backend Tests
+  # ============================================
+  backend-checks:
+    name: Backend - Lint, Type Check & Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: backend
+        run: npm ci
+
+      - name: Generate Prisma Client
+        working-directory: backend
+        run: npx prisma generate
+
+      - name: Run ESLint
+        id: lint
+        working-directory: backend
+        run: npm run lint
+        continue-on-error: true
+
+      - name: Run TypeScript type check
+        id: typecheck
+        working-directory: backend
+        run: npm run typecheck
+        continue-on-error: true
+
+      - name: Run unit tests
+        id: test
+        working-directory: backend
+        run: npm run test -- --coverage --coverageReporters=json --coverageReporters=lcov --coverageReporters=text-summary
+        continue-on-error: true
+
+      - name: Run integration tests
+        id: integration-test
+        working-directory: backend
+        run: npm run test:integration
+        continue-on-error: true
+        env:
+          NODE_ENV: test
+
+      - name: Extract test coverage summary
+        id: coverage
+        if: always()
+        run: |
+          if [ -f backend/coverage/coverage-summary.json ]; then
+            COVERAGE=$(cat backend/coverage/coverage-summary.json | jq -r '.total.lines.pct')
+            echo "coverage=$COVERAGE" >> $GITHUB_OUTPUT
+          else
+            echo "coverage=N/A" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Upload coverage artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-coverage
+          path: backend/coverage/
+          retention-days: 7
+
+      - name: Set job status
+        if: steps.lint.outcome == 'failure' || steps.typecheck.outcome == 'failure' || steps.test.outcome == 'failure' || steps.integration-test.outcome == 'failure'
+        run: exit 1
+
+  # ============================================
+  # Job 2: Frontend Tests
+  # ============================================
+  frontend-checks:
+    name: Frontend - Lint, Type Check & Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: web-dashboard/package-lock.json
+
+      - name: Install dependencies
+        working-directory: web-dashboard
+        run: npm ci
+
+      - name: Run ESLint
+        id: lint
+        working-directory: web-dashboard
+        run: npm run lint
+        continue-on-error: true
+
+      - name: Run TypeScript type check
+        id: typecheck
+        working-directory: web-dashboard
+        run: npm run typecheck
+        continue-on-error: true
+
+      - name: Build production bundle
+        id: build
+        working-directory: web-dashboard
+        run: npm run build
+        continue-on-error: true
+        env:
+          NEXT_PUBLIC_API_URL: https://api.novafsm.com
+
+      - name: Check build size
+        id: build-size
+        if: always()
+        run: |
+          if [ -d web-dashboard/.next ]; then
+            SIZE=$(du -sh web-dashboard/.next | cut -f1)
+            echo "size=$SIZE" >> $GITHUB_OUTPUT
+          else
+            echo "size=N/A" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Upload build artifacts
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-build
+          path: web-dashboard/.next/
+          retention-days: 7
+
+      - name: Set job status
+        if: steps.lint.outcome == 'failure' || steps.typecheck.outcome == 'failure' || steps.build.outcome == 'failure'
+        run: exit 1
+
+  # ============================================
+  # Job 3: Changed Files Analysis
+  # ============================================
+  changed-files:
+    name: Analyze Changed Files
+    runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.filter.outputs.backend }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+      infra: ${{ steps.filter.outputs.infra }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Detect changed files
+        uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            backend:
+              - 'backend/**'
+            frontend:
+              - 'web-dashboard/**'
+            infra:
+              - 'infrastructure/**'
+              - '.github/**'
+
+  # ============================================
+  # Job 4: Security Scan (Quick)
+  # ============================================
+  security-check:
+    name: Quick Security Check
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'table'
+          severity: 'CRITICAL,HIGH'
+          exit-code: '0'
+
+  # ============================================
+  # Job 5: PR Comment with Results
+  # ============================================
+  pr-comment:
+    name: Post PR Comment with Results
+    needs: [backend-checks, frontend-checks, changed-files, security-check]
+    if: always()
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download backend coverage
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: backend-coverage
+          path: backend-coverage/
+
+      - name: Extract coverage data
+        id: coverage-data
+        run: |
+          if [ -f backend-coverage/coverage-summary.json ]; then
+            LINES=$(jq -r '.total.lines.pct' backend-coverage/coverage-summary.json)
+            STATEMENTS=$(jq -r '.total.statements.pct' backend-coverage/coverage-summary.json)
+            FUNCTIONS=$(jq -r '.total.functions.pct' backend-coverage/coverage-summary.json)
+            BRANCHES=$(jq -r '.total.branches.pct' backend-coverage/coverage-summary.json)
+            echo "lines=$LINES" >> $GITHUB_OUTPUT
+            echo "statements=$STATEMENTS" >> $GITHUB_OUTPUT
+            echo "functions=$FUNCTIONS" >> $GITHUB_OUTPUT
+            echo "branches=$BRANCHES" >> $GITHUB_OUTPUT
+          else
+            echo "lines=N/A" >> $GITHUB_OUTPUT
+            echo "statements=N/A" >> $GITHUB_OUTPUT
+            echo "functions=N/A" >> $GITHUB_OUTPUT
+            echo "branches=N/A" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create PR comment
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const backendStatus = '${{ needs.backend-checks.result }}';
+            const frontendStatus = '${{ needs.frontend-checks.result }}';
+            const securityStatus = '${{ needs.security-check.result }}';
+
+            const getEmoji = (status) => {
+              if (status === 'success') return '✅';
+              if (status === 'failure') return '❌';
+              return '⚠️';
+            };
+
+            const coverage = {
+              lines: '${{ steps.coverage-data.outputs.lines }}',
+              statements: '${{ steps.coverage-data.outputs.statements }}',
+              functions: '${{ steps.coverage-data.outputs.functions }}',
+              branches: '${{ steps.coverage-data.outputs.branches }}'
+            };
+
+            const changedFiles = {
+              backend: '${{ needs.changed-files.outputs.backend }}' === 'true',
+              frontend: '${{ needs.changed-files.outputs.frontend }}' === 'true',
+              infra: '${{ needs.changed-files.outputs.infra }}' === 'true'
+            };
+
+            const body = `## 🚀 Pull Request Checks Summary
+
+### Status Overview
+| Check | Status |
+|-------|--------|
+| ${getEmoji(backendStatus)} Backend Tests | ${backendStatus} |
+| ${getEmoji(frontendStatus)} Frontend Tests | ${frontendStatus} |
+| ${getEmoji(securityStatus)} Security Check | ${securityStatus} |
+
+### Test Coverage (Backend)
+| Metric | Coverage |
+|--------|----------|
+| Lines | ${coverage.lines}% |
+| Statements | ${coverage.statements}% |
+| Functions | ${coverage.functions}% |
+| Branches | ${coverage.branches}% |
+
+### Changed Files
+- Backend: ${changedFiles.backend ? '✅ Modified' : '⬜ No changes'}
+- Frontend: ${changedFiles.frontend ? '✅ Modified' : '⬜ No changes'}
+- Infrastructure: ${changedFiles.infra ? '✅ Modified' : '⬜ No changes'}
+
+### Next Steps
+${backendStatus === 'success' && frontendStatus === 'success'
+  ? '✅ All checks passed! This PR is ready for review.'
+  : '⚠️ Some checks failed. Please review the errors above and fix them before merging.'}
+
+---
+**Workflow Run:** [View Details](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+`;
+
+            // Find existing comment
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+
+            const botComment = comments.find(comment =>
+              comment.user.type === 'Bot' &&
+              comment.body.includes('Pull Request Checks Summary')
+            );
+
+            // Create or update comment
+            if (botComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: body
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: body
+              });
+            }
+
+  # ============================================
+  # Job 6: Code Quality Gate
+  # ============================================
+  quality-gate:
+    name: Code Quality Gate
+    needs: [backend-checks, frontend-checks, security-check]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check all jobs status
+        run: |
+          echo "Backend Checks: ${{ needs.backend-checks.result }}"
+          echo "Frontend Checks: ${{ needs.frontend-checks.result }}"
+          echo "Security Check: ${{ needs.security-check.result }}"
+
+          if [[ "${{ needs.backend-checks.result }}" != "success" ]] || \
+             [[ "${{ needs.frontend-checks.result }}" != "success" ]]; then
+            echo "❌ Quality gate failed!"
+            exit 1
+          fi
+
+          echo "✅ Quality gate passed!"

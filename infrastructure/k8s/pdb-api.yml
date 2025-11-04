@@ -1,0 +1,48 @@
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: novafsm-api-pdb
+  namespace: production
+  labels:
+    app: novafsm
+    component: api
+    environment: production
+spec:
+  minAvailable: 2  # Always keep at least 2 pods running during disruptions
+  selector:
+    matchLabels:
+      app: novafsm
+      component: api
+
+  # Alternative: Use maxUnavailable instead of minAvailable
+  # maxUnavailable: 1  # Allow at most 1 pod to be unavailable
+
+  # Unhealthy Pod Eviction Policy (Kubernetes 1.26+)
+  unhealthyPodEvictionPolicy: IfHealthyBudget
+
+---
+# ============================================================================
+# NOTES:
+# ============================================================================
+# Pod Disruption Budgets (PDBs) protect your application during:
+# - Voluntary disruptions (node drains, cluster upgrades, etc.)
+# - kubectl drain operations
+# - Cluster autoscaler scale-downs
+#
+# PDBs do NOT protect against:
+# - Node failures (involuntary disruptions)
+# - Pod crashes
+# - Out-of-memory kills
+#
+# Best Practices:
+# 1. Use minAvailable for critical services (ensures minimum capacity)
+# 2. Use maxUnavailable for batch jobs (allows more flexibility)
+# 3. Set minAvailable to at least 2 for high-availability services
+# 4. Ensure minAvailable < minReplicas in HPA
+# 5. Test PDB by draining a node: kubectl drain NODE_NAME --ignore-daemonsets
+#
+# Monitor PDB status:
+#   kubectl get pdb -n production
+#   kubectl describe pdb novafsm-api-pdb -n production
+# ============================================================================

@@ -1,0 +1,157 @@
+---
+# ============================================================================
+# CERT-MANAGER CLUSTERISSUER - Let's Encrypt Production
+# ============================================================================
+# This is only needed if you're using cert-manager instead of AWS ACM
+# For AWS ACM, use the certificate ARN in ingress.yml annotations
+# ============================================================================
+
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-prod
+  labels:
+    app: cert-manager
+    environment: production
+spec:
+  acme:
+    # Let's Encrypt production server
+    server: https://acme-v02.api.letsencrypt.org/directory
+
+    # Email for urgent renewal and security notices
+    email: devops@novafsm.com  # REPLACE WITH ACTUAL EMAIL
+
+    # Secret to store the ACME account private key
+    privateKeySecretRef:
+      name: letsencrypt-prod-account-key
+
+    # ACME challenge solver configuration
+    solvers:
+      # HTTP-01 challenge (default)
+      - http01:
+          ingress:
+            class: alb
+            podTemplate:
+              metadata:
+                labels:
+                  app: cert-manager-solver
+              spec:
+                nodeSelector:
+                  kubernetes.io/os: linux
+        selector: {}
+
+      # DNS-01 challenge (for wildcard certificates)
+      # Uncomment and configure if you need wildcard certs
+      # - dns01:
+      #     route53:
+      #       region: us-east-1
+      #       # Use IRSA for authentication (recommended)
+      #       # hostedZoneID: ZXXXXXXXXXXXXX  # Optional: specify if multiple zones
+      #   selector:
+      #     dnsZones:
+      #       - "novafsm.com"
+
+---
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-staging
+  labels:
+    app: cert-manager
+    environment: staging
+spec:
+  acme:
+    # Let's Encrypt staging server (for testing)
+    server: https://acme-staging-v02.api.letsencrypt.org/directory
+
+    email: devops@novafsm.com  # REPLACE WITH ACTUAL EMAIL
+
+    privateKeySecretRef:
+      name: letsencrypt-staging-account-key
+
+    solvers:
+      - http01:
+          ingress:
+            class: alb
+        selector: {}
+
+---
+# ============================================================================
+# INSTALLATION INSTRUCTIONS
+# ============================================================================
+# 1. Install cert-manager:
+#    kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.13.0/cert-manager.yaml
+#
+# 2. Verify cert-manager is running:
+#    kubectl get pods -n cert-manager
+#
+# 3. Apply this ClusterIssuer:
+#    kubectl apply -f cert-issuer.yml
+#
+# 4. Verify ClusterIssuer is ready:
+#    kubectl get clusterissuer
+#    kubectl describe clusterissuer letsencrypt-prod
+#
+# 5. Test with staging first:
+#    - Use "letsencrypt-staging" in ingress annotation
+#    - Verify certificate is issued successfully
+#    - Then switch to "letsencrypt-prod"
+#
+# ============================================================================
+# CERTIFICATE DEBUGGING
+# ============================================================================
+# Check certificate status:
+#   kubectl get certificate -n production
+#   kubectl describe certificate CERT_NAME -n production
+#
+# Check certificate request:
+#   kubectl get certificaterequest -n production
+#   kubectl describe certificaterequest REQUEST_NAME -n production
+#
+# Check ACME challenge:
+#   kubectl get challenge -n production
+#   kubectl describe challenge CHALLENGE_NAME -n production
+#
+# View cert-manager logs:
+#   kubectl logs -n cert-manager deployment/cert-manager -f
+#
+# ============================================================================
+# RATE LIMITS
+# ============================================================================
+# Let's Encrypt Production Rate Limits (as of 2024):
+# - 50 certificates per registered domain per week
+# - 5 duplicate certificates per week
+# - 300 new orders per account per 3 hours
+# - 10 failed validations per account per hostname per hour
+#
+# Use staging for testing to avoid hitting rate limits!
+# ============================================================================
+
+---
+# ============================================================================
+# IAM POLICY FOR ROUTE53 DNS-01 CHALLENGE (if using DNS-01)
+# ============================================================================
+# {
+#   "Version": "2012-10-17",
+#   "Statement": [
+#     {
+#       "Effect": "Allow",
+#       "Action": [
+#         "route53:GetChange",
+#         "route53:ListHostedZonesByName"
+#       ],
+#       "Resource": "*"
+#     },
+#     {
+#       "Effect": "Allow",
+#       "Action": [
+#         "route53:ChangeResourceRecordSets",
+#         "route53:ListResourceRecordSets"
+#       ],
+#       "Resource": "arn:aws:route53:::hostedzone/ZXXXXXXXXXXXXX"
+#     }
+#   ]
+# }
+#
+# Attach this policy to the cert-manager ServiceAccount via IRSA
+# ============================================================================

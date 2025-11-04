@@ -1,0 +1,234 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: novafsm-api
+  namespace: production
+  labels:
+    app: novafsm
+    component: api
+    environment: production
+    version: v1
+spec:
+  replicas: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app: novafsm
+      component: api
+  template:
+    metadata:
+      labels:
+        app: novafsm
+        component: api
+        environment: production
+        version: v1
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "3000"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: novafsm-api
+
+      # Security Context
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+
+      # Init Container (optional - for migrations)
+      initContainers:
+        - name: migrate
+          image: ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com/novafsm-api:latest
+          command: ["npm", "run", "migrate:deploy"]
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: novafsm-secrets
+                  key: DATABASE_URL
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            runAsNonRoot: true
+            runAsUser: 1000
+            capabilities:
+              drop:
+                - ALL
+
+      containers:
+        - name: api
+          image: ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com/novafsm-api:latest
+          imagePullPolicy: Always
+
+          ports:
+            - name: http
+              containerPort: 3000
+              protocol: TCP
+
+          # Environment Variables from ConfigMap
+          envFrom:
+            - configMapRef:
+                name: novafsm-config
+
+          # Environment Variables from Secrets
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: novafsm-secrets
+                  key: DATABASE_URL
+            - name: REDIS_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: novafsm-secrets
+                  key: REDIS_HOST
+            - name: REDIS_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: novafsm-secrets
+                  key: REDIS_PORT
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: novafsm-secrets
+                  key: REDIS_PASSWORD
+            - name: JWT_PRIVATE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: novafsm-secrets
+                  key: JWT_PRIVATE_KEY
+            - name: JWT_PUBLIC_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: novafsm-secrets
+                  key: JWT_PUBLIC_KEY
+            - name: S3_BUCKET
+              valueFrom:
+                secretKeyRef:
+                  name: novafsm-secrets
+                  key: S3_BUCKET
+            - name: SESSION_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: novafsm-secrets
+                  key: SESSION_SECRET
+            # AWS credentials (only if not using IRSA)
+            # - name: AWS_ACCESS_KEY_ID
+            #   valueFrom:
+            #     secretKeyRef:
+            #       name: novafsm-secrets
+            #       key: AWS_ACCESS_KEY_ID
+            # - name: AWS_SECRET_ACCESS_KEY
+            #   valueFrom:
+            #     secretKeyRef:
+            #       name: novafsm-secrets
+            #       key: AWS_SECRET_ACCESS_KEY
+
+          # Resource Limits and Requests
+          resources:
+            requests:
+              cpu: 200m
+              memory: 512Mi
+            limits:
+              cpu: 1000m
+              memory: 1Gi
+
+          # Liveness Probe
+          livenessProbe:
+            httpGet:
+              path: /api/v1/health
+              port: http
+              scheme: HTTP
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            successThreshold: 1
+            failureThreshold: 3
+
+          # Readiness Probe
+          readinessProbe:
+            httpGet:
+              path: /api/v1/health/ready
+              port: http
+              scheme: HTTP
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 3
+            successThreshold: 1
+            failureThreshold: 3
+
+          # Startup Probe (for slow-starting containers)
+          startupProbe:
+            httpGet:
+              path: /api/v1/health
+              port: http
+              scheme: HTTP
+            initialDelaySeconds: 0
+            periodSeconds: 5
+            timeoutSeconds: 3
+            successThreshold: 1
+            failureThreshold: 12  # 60 seconds max startup time
+
+          # Security Context
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            runAsNonRoot: true
+            runAsUser: 1000
+            capabilities:
+              drop:
+                - ALL
+              add:
+                - NET_BIND_SERVICE
+
+          # Lifecycle hooks
+          lifecycle:
+            preStop:
+              exec:
+                command: ["/bin/sh", "-c", "sleep 10"]  # Allow time for connection draining
+
+      # Topology Spread Constraints (distribute pods across nodes/zones)
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app: novafsm
+              component: api
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app: novafsm
+              component: api
+
+      # Affinity Rules (prefer to spread across different nodes)
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app: novafsm
+                    component: api
+                topologyKey: kubernetes.io/hostname
+
+      # Termination Grace Period
+      terminationGracePeriodSeconds: 30
+
+      # DNS Configuration
+      dnsPolicy: ClusterFirst
+
+      # Restart Policy
+      restartPolicy: Always

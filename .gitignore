@@ -65,6 +65,7 @@ secrets/
 *.pem
 *.key
 !infrastructure/k8s/*.example.yml
+infrastructure/k8s/secrets.yml
 
 # Temp
 tmp/

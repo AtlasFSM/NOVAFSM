@@ -1,0 +1,19 @@
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: novafsm-web-pdb
+  namespace: production
+  labels:
+    app: novafsm
+    component: web
+    environment: production
+spec:
+  minAvailable: 1  # Always keep at least 1 pod running during disruptions
+  selector:
+    matchLabels:
+      app: novafsm
+      component: web
+
+  # Unhealthy Pod Eviction Policy (Kubernetes 1.26+)
+  unhealthyPodEvictionPolicy: IfHealthyBudget

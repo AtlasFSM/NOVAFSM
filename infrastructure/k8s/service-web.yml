@@ -1,0 +1,21 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: novafsm-web
+  namespace: production
+  labels:
+    app: novafsm
+    component: web
+    environment: production
+spec:
+  type: ClusterIP
+  selector:
+    app: novafsm
+    component: web
+  ports:
+    - name: http
+      port: 3001
+      targetPort: http
+      protocol: TCP
+  sessionAffinity: None
