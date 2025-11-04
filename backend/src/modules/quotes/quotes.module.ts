@@ -4,6 +4,7 @@ import { QuotesService } from './quotes.service';
 import { SequenceService } from './sequence.service';
 import { QuoteLinesService } from './quote-lines/quote-lines.service';
 import { PrismaModule } from '../../common/prisma/prisma.module';
+import { EmailModule } from '../email/email.module';
 
 /**
  * Quotes Module
@@ -37,7 +38,7 @@ import { PrismaModule } from '../../common/prisma/prisma.module';
  * - POST /quotes/:id/convert-to-invoice - Create invoice from quote
  */
 @Module({
-  imports: [PrismaModule],
+  imports: [PrismaModule, EmailModule],
   controllers: [QuotesController],
   providers: [QuotesService, SequenceService, QuoteLinesService],
   exports: [QuotesService, SequenceService, QuoteLinesService],

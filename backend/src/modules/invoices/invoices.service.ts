@@ -1,6 +1,7 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { SequenceService } from '../../common/services/sequence.service';
+import { EmailService } from '../email/email.service';
 import { CreateInvoiceDto } from './dto/create-invoice.dto';
 import { UpdateInvoiceDto } from './dto/update-invoice.dto';
 
@@ -9,9 +10,12 @@ import { UpdateInvoiceDto } from './dto/update-invoice.dto';
  */
 @Injectable()
 export class InvoicesService {
+  private readonly logger = new Logger(InvoicesService.name);
+
   constructor(
     private prisma: PrismaService,
     private sequenceService: SequenceService,
+    private emailService: EmailService,
   ) {}
 
   /**
@@ -328,5 +332,40 @@ export class InvoicesService {
     return {
       url: mockUrl,
     };
+  }
+
+  /**
+   * Send invoice to customer via email (DRAFT → SENT)
+   */
+  async send(id: string) {
+    const invoice = await this.findOne(id);
+
+    if (invoice.status !== 'DRAFT') {
+      throw new BadRequestException('Only DRAFT invoices can be sent');
+    }
+
+    // Update invoice status
+    const updated = await this.prisma.invoice.update({
+      where: { id },
+      data: {
+        status: 'SENT',
+        sentAt: new Date(),
+      },
+    });
+
+    // Send email notification with PDF attachment
+    try {
+      await this.emailService.sendInvoiceEmail(
+        invoice.customer.email,
+        invoice.customer.name,
+        invoice,
+      );
+      this.logger.log(`Invoice ${invoice.number} sent via email to ${invoice.customer.email}`);
+    } catch (error) {
+      this.logger.error(`Failed to send invoice email: ${error.message}`, error.stack);
+      // Don't fail the request if email fails - invoice status is still updated
+    }
+
+    return this.findOne(id);
   }
 }

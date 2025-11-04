@@ -103,4 +103,17 @@ export class InvoicesController {
   async delete(@Param('id', ParseUUIDPipe) id: string) {
     return this.invoicesService.delete(id);
   }
+
+  @Post(':id/send')
+  @Roles('ADMIN', 'DISPATCHER')
+  @ApiOperation({
+    summary: 'Send invoice to customer',
+    description: 'Change invoice status from DRAFT to SENT and send email with PDF attachment'
+  })
+  @ApiResponse({ status: 200, description: 'Invoice sent successfully' })
+  @ApiResponse({ status: 400, description: 'Only DRAFT invoices can be sent' })
+  @ApiResponse({ status: 404, description: 'Invoice not found' })
+  async send(@Param('id', ParseUUIDPipe) id: string) {
+    return this.invoicesService.send(id);
+  }
 }

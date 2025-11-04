@@ -3,10 +3,12 @@ import {
   NotFoundException,
   BadRequestException,
   ConflictException,
+  Logger,
 } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { SequenceService } from './sequence.service';
 import { QuoteLinesService } from './quote-lines/quote-lines.service';
+import { EmailService } from '../email/email.service';
 import { CreateQuoteDto } from './dto/create-quote.dto';
 import { UpdateQuoteDto } from './dto/update-quote.dto';
 import { QueryQuotesDto } from './dto/query-quotes.dto';
@@ -17,10 +19,13 @@ import { QueryQuotesDto } from './dto/query-quotes.dto';
  */
 @Injectable()
 export class QuotesService {
+  private readonly logger = new Logger(QuotesService.name);
+
   constructor(
     private prisma: PrismaService,
     private sequenceService: SequenceService,
     private quoteLinesService: QuoteLinesService,
+    private emailService: EmailService,
   ) {}
 
   /**
@@ -484,8 +489,18 @@ export class QuotesService {
       },
     });
 
-    // TODO: Trigger email notification via outbox pattern
-    // await this.createOutboxEvent(tenantId, 'quote.sent', { quoteId: id });
+    // Send email notification with PDF attachment
+    try {
+      await this.emailService.sendQuoteEmail(
+        quote.customer.email,
+        quote.customer.name,
+        quote,
+      );
+      this.logger.log(`Quote ${quote.number} sent via email to ${quote.customer.email}`);
+    } catch (error) {
+      this.logger.error(`Failed to send quote email: ${error.message}`, error.stack);
+      // Don't fail the request if email fails - quote status is still updated
+    }
 
     return this.findOne(tenantId, id);
   }
