@@ -26,6 +26,9 @@ import { EmailModule } from './modules/email/email.module';
 import { OrganizationsModule } from './modules/organizations/organizations.module';
 import { SitesModule } from './modules/sites/sites.module';
 import { ScheduleModule } from './modules/schedule/schedule.module';
+import { AssetsModule } from './modules/assets/assets.module';
+import { DocumentsModule } from './modules/documents/documents.module';
+import { FormsModule } from './modules/forms/forms.module';
 
 @Module({
   imports: [
@@ -77,6 +80,9 @@ import { ScheduleModule } from './modules/schedule/schedule.module';
     OrganizationsModule,
     SitesModule,
     ScheduleModule,
+    AssetsModule,
+    DocumentsModule,
+    FormsModule,
   ],
   providers: [
     // Global guards

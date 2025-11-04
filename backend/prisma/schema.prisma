@@ -37,6 +37,10 @@ model Organization {
   outboxEvents   OutboxEvent[]
   sequences      Sequence[]
   taxRates       TaxRate[]
+  assets         Asset[]
+  documents      Document[]
+  formTemplates  FormTemplate[]
+  formResponses  FormResponse[]
 
   @@map("organizations")
 }
@@ -133,6 +137,8 @@ model Customer {
   jobs         Job[]
   quotes       Quote[]
   invoices     Invoice[]
+  assets       Asset[]
+  documents    Document[]
 
   @@index([tenantId, status])
   @@index([tenantId, email])
@@ -157,9 +163,11 @@ model Site {
   updatedAt     DateTime @updatedAt
 
   // Relations
-  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  jobs     Job[]
-  quotes   Quote[]
+  customer  Customer   @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  jobs      Job[]
+  quotes    Quote[]
+  assets    Asset[]
+  documents Document[]
 
   @@index([tenantId, customerId])
   @@map("sites")
@@ -340,15 +348,18 @@ model Job {
   completedAt          DateTime?
 
   // Relations
-  organization       Organization  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  customer           Customer      @relation(fields: [customerId], references: [id], onDelete: Restrict)
-  site               Site?         @relation(fields: [siteId], references: [id], onDelete: SetNull)
-  quote              Quote?        @relation(fields: [quoteId], references: [id], onDelete: SetNull)
-  assignedTechnician User?         @relation("AssignedTechnician", fields: [assignedTechnicianId], references: [id], onDelete: SetNull)
+  organization       Organization     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  customer           Customer         @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  site               Site?            @relation(fields: [siteId], references: [id], onDelete: SetNull)
+  quote              Quote?           @relation(fields: [quoteId], references: [id], onDelete: SetNull)
+  assignedTechnician User?            @relation("AssignedTechnician", fields: [assignedTechnicianId], references: [id], onDelete: SetNull)
   timeEntries        TimeEntry[]
   expenseEntries     ExpenseEntry[]
   inventoryUsages    InventoryUsage[]
   invoice            Invoice?
+  assets             Asset[]
+  documents          Document[]
+  formAssignments    FormAssignment[]
 
   @@unique([tenantId, number])
   @@index([tenantId, status])
@@ -583,6 +594,194 @@ model IdempotencyKey {
   @@unique([tenantId, key])
   @@index([tenantId, expiresAt])
   @@map("idempotency_keys")
+}
+
+// ============================================================
+// ASSET & EQUIPMENT TRACKING
+// ============================================================
+
+model Asset {
+  id                String    @id @default(uuid()) @db.Uuid
+  tenantId          String    @db.Uuid
+  category          String // HEAVY_EQUIPMENT, VEHICLE, TOOL, MODULE, TRAILER, OTHER
+  status            String    @default("AVAILABLE") // AVAILABLE, IN_USE, MAINTENANCE, RETIRED
+  name              String
+  serialNumber      String?
+  model             String?
+  vendor            String?
+  purchaseDate      DateTime?
+  purchaseCost      Decimal?  @db.Decimal(12, 2)
+  warrantyExpires   DateTime?
+  lastMaintenance   DateTime?
+  nextMaintenance   DateTime?
+  assignedToType    String? // JOB, SITE, TECHNICIAN, CUSTOMER, null
+  assignedToId      String?   @db.Uuid
+  customerId        String?   @db.Uuid
+  siteId            String?   @db.Uuid
+  jobId             String?   @db.Uuid
+  technicianId      String?   @db.Uuid
+  geoLocation       Json? // {lat, lng, timestamp}
+  hourlyRate        Decimal?  @db.Decimal(12, 2) // For billing if rented
+  dailyRate         Decimal?  @db.Decimal(12, 2)
+  specifications    Json      @default("{}") // Technical specs
+  maintenanceLogs   Json      @default("[]") // Array of maintenance records
+  usageHistory      Json      @default("[]") // Assignment history
+  qrCode            String?
+  notes             String?   @db.Text
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  // Relations
+  organization Organization @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  customer     Customer?    @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  site         Site?        @relation(fields: [siteId], references: [id], onDelete: SetNull)
+  job          Job?         @relation(fields: [jobId], references: [id], onDelete: SetNull)
+  documents    Document[]
+
+  @@index([tenantId, status])
+  @@index([tenantId, category])
+  @@index([tenantId, assignedToType, assignedToId])
+  @@index([tenantId, customerId])
+  @@index([tenantId, serialNumber])
+  @@map("assets")
+}
+
+// ============================================================
+// DOCUMENT MANAGEMENT SYSTEM
+// ============================================================
+
+model Document {
+  id              String   @id @default(uuid()) @db.Uuid
+  tenantId        String   @db.Uuid
+  fileName        String
+  originalName    String
+  mimeType        String
+  size            Int // bytes
+  s3Key           String // S3 object key
+  s3Bucket        String
+  version         Int      @default(1)
+  parentId        String?  @db.Uuid // For versioning
+  virtualPath     String? // Folder-like path
+  tags            Json     @default("[]") // Array of string tags
+  entityType      String? // CUSTOMER, SITE, JOB, QUOTE, INVOICE, ASSET, etc.
+  entityId        String?  @db.Uuid
+  customerId      String?  @db.Uuid
+  siteId          String?  @db.Uuid
+  jobId           String?  @db.Uuid
+  quoteId         String?  @db.Uuid
+  invoiceId       String?  @db.Uuid
+  assetId         String?  @db.Uuid
+  uploadedById    String?  @db.Uuid
+  description     String?  @db.Text
+  isPublic        Boolean  @default(false) // Public to customer
+  metadata        Json     @default("{}") // Additional metadata
+  checksum        String? // For integrity verification
+  expiresAt       DateTime? // For temporary documents
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  organization Organization @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  customer     Customer?    @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  site         Site?        @relation(fields: [siteId], references: [id], onDelete: SetNull)
+  job          Job?         @relation(fields: [jobId], references: [id], onDelete: SetNull)
+  asset        Asset?       @relation(fields: [assetId], references: [id], onDelete: SetNull)
+  parent       Document?    @relation("DocumentVersions", fields: [parentId], references: [id], onDelete: Cascade)
+  versions     Document[]   @relation("DocumentVersions")
+
+  @@index([tenantId, entityType, entityId])
+  @@index([tenantId, customerId])
+  @@index([tenantId, s3Key])
+  @@index([tenantId, createdAt])
+  @@index([tenantId, expiresAt])
+  @@map("documents")
+}
+
+// ============================================================
+// DYNAMIC FORM BUILDER
+// ============================================================
+
+model FormTemplate {
+  id          String   @id @default(uuid()) @db.Uuid
+  tenantId    String   @db.Uuid
+  name        String
+  description String?  @db.Text
+  category    String // INSPECTION, SAFETY, AUDIT, CHECKLIST, SURVEY, etc.
+  version     Int      @default(1)
+  isActive    Boolean  @default(true)
+  isPublished Boolean  @default(false)
+  fields      Json     @default("[]") // Array of field definitions
+  logic       Json     @default("{}") // Conditional logic rules
+  settings    Json     @default("{}") // Form-level settings
+  createdById String?  @db.Uuid
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  organization  Organization     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  assignments   FormAssignment[]
+  responses     FormResponse[]
+
+  @@index([tenantId, isActive])
+  @@index([tenantId, category])
+  @@map("form_templates")
+}
+
+model FormAssignment {
+  id           String    @id @default(uuid()) @db.Uuid
+  tenantId     String    @db.Uuid
+  templateId   String    @db.Uuid
+  assignedType String // JOB, SITE, ASSET, INSPECTION
+  assignedToId String?   @db.Uuid
+  jobId        String?   @db.Uuid
+  siteId       String?   @db.Uuid
+  assetId      String?   @db.Uuid
+  assignedById String?   @db.Uuid
+  dueDate      DateTime?
+  status       String    @default("PENDING") // PENDING, IN_PROGRESS, COMPLETED, OVERDUE
+  completedAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  // Relations
+  template FormTemplate  @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  job      Job?          @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  response FormResponse?
+
+  @@index([tenantId, templateId])
+  @@index([tenantId, assignedType, assignedToId])
+  @@index([tenantId, status])
+  @@index([tenantId, dueDate])
+  @@map("form_assignments")
+}
+
+model FormResponse {
+  id             String   @id @default(uuid()) @db.Uuid
+  tenantId       String   @db.Uuid
+  templateId     String   @db.Uuid
+  assignmentId   String?  @unique @db.Uuid
+  responses      Json     @default("{}") // Field ID -> value mapping
+  submittedById  String?  @db.Uuid
+  submittedAt    DateTime?
+  latitude       Float?
+  longitude      Float?
+  deviceInfo     Json? // Device metadata
+  pdfUrl         String? // Generated PDF URL
+  status         String   @default("DRAFT") // DRAFT, SUBMITTED, APPROVED, REJECTED
+  score          Int? // If scoring enabled
+  reviewNotes    String?  @db.Text
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Relations
+  organization Organization    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  template     FormTemplate    @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  assignment   FormAssignment? @relation(fields: [assignmentId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, templateId])
+  @@index([tenantId, status])
+  @@index([tenantId, submittedAt])
+  @@map("form_responses")
 }
 
 // ============================================================
