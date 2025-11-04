@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,13 +7,42 @@ import {
   StyleSheet,
   Linking,
   Alert,
+  Modal,
+  Image,
+  FlatList,
 } from 'react-native';
+import { v4 as uuidv4 } from 'uuid';
 import { useJobs } from '../hooks/use-jobs';
+import { getJobPhotos, getJobSignatures, insertJobPhoto, insertJobSignature } from '../services/database';
+import { queueJobUpdate } from '../services/sync';
+import PhotoCapture from '../components/PhotoCapture';
+import SignatureCapture from '../components/SignatureCapture';
+import { LocalJobPhoto, LocalJobSignature } from '../types';
 
 export default function JobDetailScreen({ route, navigation }: any) {
   const { jobId } = route.params;
   const { jobs } = useJobs();
   const job = jobs.find((j: any) => j.id === jobId);
+
+  const [photos, setPhotos] = useState<LocalJobPhoto[]>([]);
+  const [signatures, setSignatures] = useState<LocalJobSignature[]>([]);
+  const [showPhotoCapture, setShowPhotoCapture] = useState(false);
+  const [showSignatureCapture, setShowSignatureCapture] = useState(false);
+
+  useEffect(() => {
+    loadPhotosAndSignatures();
+  }, [jobId]);
+
+  const loadPhotosAndSignatures = async () => {
+    try {
+      const jobPhotos = await getJobPhotos(jobId);
+      const jobSignatures = await getJobSignatures(jobId);
+      setPhotos(jobPhotos);
+      setSignatures(jobSignatures);
+    } catch (error) {
+      console.error('Failed to load photos and signatures:', error);
+    }
+  };
 
   if (!job) {
     return (
@@ -23,21 +52,84 @@ export default function JobDetailScreen({ route, navigation }: any) {
     );
   }
 
-  const handleCheckIn = () => {
-    // TODO: Get current location and update job status
-    Alert.alert('Check In', 'Location recorded. Job started.');
+  const handleCheckIn = async () => {
+    try {
+      await queueJobUpdate(jobId, {
+        status: 'IN_PROGRESS',
+        startedAt: new Date().toISOString(),
+      });
+      Alert.alert('Check In', 'Job started successfully');
+    } catch (error) {
+      Alert.alert('Error', 'Failed to check in. Please try again.');
+      console.error('Check in failed:', error);
+    }
   };
 
-  const handleCheckOut = () => {
-    Alert.alert('Check Out', 'Location recorded. Job completed.');
+  const handleCheckOut = async () => {
+    try {
+      await queueJobUpdate(jobId, {
+        status: 'COMPLETED',
+        completedAt: new Date().toISOString(),
+      });
+      Alert.alert('Check Out', 'Job completed successfully');
+    } catch (error) {
+      Alert.alert('Error', 'Failed to check out. Please try again.');
+      console.error('Check out failed:', error);
+    }
   };
 
   const handleAddPhoto = () => {
-    Alert.alert('Add Photo', 'Camera/gallery picker would open here');
+    setShowPhotoCapture(true);
+  };
+
+  const handlePhotoSelected = async (uri: string) => {
+    try {
+      const photoId = uuidv4();
+      await insertJobPhoto({
+        id: photoId,
+        jobId,
+        uri,
+        uploaded: false,
+        uploadedUrl: null,
+        caption: null,
+        createdAt: new Date().toISOString(),
+      });
+
+      await loadPhotosAndSignatures();
+      setShowPhotoCapture(false);
+      Alert.alert('Success', 'Photo saved. It will be uploaded when online.');
+    } catch (error) {
+      Alert.alert('Error', 'Failed to save photo. Please try again.');
+      console.error('Failed to save photo:', error);
+      throw error;
+    }
   };
 
   const handleSignature = () => {
-    Alert.alert('Signature', 'Signature capture would open here');
+    setShowSignatureCapture(true);
+  };
+
+  const handleSignatureSaved = async (signatureData: string) => {
+    try {
+      const signatureId = uuidv4();
+      await insertJobSignature({
+        id: signatureId,
+        jobId,
+        type: 'CUSTOMER',
+        data: signatureData,
+        uploaded: false,
+        signerName: job.customerName,
+        createdAt: new Date().toISOString(),
+      });
+
+      await loadPhotosAndSignatures();
+      setShowSignatureCapture(false);
+      Alert.alert('Success', 'Signature saved. It will be uploaded when online.');
+    } catch (error) {
+      Alert.alert('Error', 'Failed to save signature. Please try again.');
+      console.error('Failed to save signature:', error);
+      throw error;
+    }
   };
 
   const handleNavigate = () => {
@@ -101,14 +193,89 @@ export default function JobDetailScreen({ route, navigation }: any) {
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Photos</Text>
-        <Text style={styles.placeholder}>No photos yet</Text>
+        <Text style={styles.sectionTitle}>Photos ({photos.length})</Text>
+        {photos.length === 0 ? (
+          <Text style={styles.placeholder}>No photos yet</Text>
+        ) : (
+          <FlatList
+            horizontal
+            data={photos}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item }) => (
+              <View style={styles.photoContainer}>
+                <Image source={{ uri: item.uri }} style={styles.photo} />
+                {!item.uploaded && (
+                  <View style={styles.photoStatusBadge}>
+                    <Text style={styles.photoStatusText}>Pending Upload</Text>
+                  </View>
+                )}
+              </View>
+            )}
+            contentContainerStyle={styles.photoList}
+          />
+        )}
+      </View>
+
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Signatures ({signatures.length})</Text>
+        {signatures.length === 0 ? (
+          <Text style={styles.placeholder}>No signatures yet</Text>
+        ) : (
+          <FlatList
+            data={signatures}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item }) => (
+              <View style={styles.signatureRow}>
+                <View style={styles.signatureInfo}>
+                  <Text style={styles.signatureType}>
+                    {item.type === 'CUSTOMER' ? '✍️ Customer' : '✍️ Technician'}
+                  </Text>
+                  {item.signerName && (
+                    <Text style={styles.signerName}>{item.signerName}</Text>
+                  )}
+                  <Text style={styles.signatureDate}>
+                    {new Date(item.createdAt).toLocaleString()}
+                  </Text>
+                </View>
+                {!item.uploaded && (
+                  <View style={styles.pendingBadge}>
+                    <Text style={styles.pendingText}>Pending</Text>
+                  </View>
+                )}
+              </View>
+            )}
+          />
+        )}
       </View>
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Time Entries</Text>
         <Text style={styles.placeholder}>No time entries yet</Text>
       </View>
+
+      <Modal
+        visible={showPhotoCapture}
+        animationType="slide"
+        presentationStyle="fullScreen"
+      >
+        <PhotoCapture
+          onPhotoSelected={handlePhotoSelected}
+          onCancel={() => setShowPhotoCapture(false)}
+        />
+      </Modal>
+
+      <Modal
+        visible={showSignatureCapture}
+        animationType="slide"
+        presentationStyle="fullScreen"
+      >
+        <SignatureCapture
+          onSignatureSaved={handleSignatureSaved}
+          onCancel={() => setShowSignatureCapture(false)}
+          signatureType="CUSTOMER"
+          customerName={job.customerName}
+        />
+      </Modal>
     </ScrollView>
   );
 }
@@ -223,5 +390,69 @@ const styles = StyleSheet.create({
   placeholder: {
     color: '#9ca3af',
     fontStyle: 'italic',
+  },
+  photoList: {
+    gap: 12,
+  },
+  photoContainer: {
+    position: 'relative',
+    marginRight: 12,
+  },
+  photo: {
+    width: 120,
+    height: 120,
+    borderRadius: 8,
+    backgroundColor: '#f3f4f6',
+  },
+  photoStatusBadge: {
+    position: 'absolute',
+    bottom: 8,
+    left: 8,
+    backgroundColor: 'rgba(251, 191, 36, 0.9)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
+  },
+  photoStatusText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: '600',
+  },
+  signatureRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f3f4f6',
+  },
+  signatureInfo: {
+    flex: 1,
+  },
+  signatureType: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1f2937',
+    marginBottom: 4,
+  },
+  signerName: {
+    fontSize: 13,
+    color: '#6b7280',
+    marginBottom: 2,
+  },
+  signatureDate: {
+    fontSize: 12,
+    color: '#9ca3af',
+  },
+  pendingBadge: {
+    backgroundColor: '#fef3c7',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+  },
+  pendingText: {
+    color: '#d97706',
+    fontSize: 12,
+    fontWeight: '600',
   },
 });

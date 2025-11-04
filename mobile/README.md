@@ -164,11 +164,14 @@ Use the same credentials as the web app:
 - [x] Sync status indicator
 - [x] Pull-to-refresh sync
 - [x] Basic navigation structure
+- [x] Photo capture (expo-camera + expo-image-picker)
+- [x] Signature capture (react-native-signature-canvas)
+- [x] Photo upload with presigned S3 URLs
+- [x] Signature upload to backend
+- [x] Check-in/check-out with status updates
 
 ### 🚧 Partially Implemented
-- [ ] Photo capture (UI ready, needs expo-camera integration)
-- [ ] Signature capture (UI ready, needs react-native-signature-canvas)
-- [ ] Location tracking (UI ready, needs expo-location)
+- [ ] Location tracking (UI ready, needs expo-location integration)
 - [ ] Background sync (service ready, needs expo-background-fetch registration)
 
 ### ⏳ To Implement
