@@ -105,7 +105,7 @@ export class PriceListsService {
 
     // If isDefault is true, unset other defaults in transaction
     if (dto.isDefault) {
-      return this.prisma.$transaction(async (tx) => {
+      return this.prisma.$transaction(async (tx: any) => {
         // Unset all other defaults for this tenant
         await tx.priceList.updateMany({
           where: { tenantId, isDefault: true },
@@ -181,7 +181,7 @@ export class PriceListsService {
 
     // If setting isDefault to true, unset other defaults in transaction
     if (dto.isDefault && !existing.isDefault) {
-      return this.prisma.$transaction(async (tx) => {
+      return this.prisma.$transaction(async (tx: any) => {
         // Unset all other defaults for this tenant
         await tx.priceList.updateMany({
           where: { tenantId, isDefault: true },
@@ -280,7 +280,7 @@ export class PriceListsService {
     }
 
     // Use transaction to unset other defaults and set this one
-    const priceList = await this.prisma.$transaction(async (tx) => {
+    const priceList = await this.prisma.$transaction(async (tx: any) => {
       // Unset all other defaults for this tenant
       await tx.priceList.updateMany({
         where: { tenantId, isDefault: true },

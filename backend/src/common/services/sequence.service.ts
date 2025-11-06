@@ -25,7 +25,7 @@ export class SequenceService {
     const year = new Date().getFullYear();
 
     // Use transaction to ensure thread-safety
-    const sequence = await this.prisma.$transaction(async (tx) => {
+    const sequence = await this.prisma.$transaction(async (tx: any) => {
       // Find or create sequence for this tenant, type, and year
       let seq = await tx.sequence.findUnique({
         where: {

@@ -241,7 +241,7 @@ export class QuotesService {
       this.quoteLinesService.calculateTotals(calculatedLines);
 
     // Create quote in transaction
-    const quote = await this.prisma.$transaction(async (tx) => {
+    const quote = await this.prisma.$transaction(async (tx: any) => {
       // Generate quote number
       const number = await this.sequenceService.generateNumber(tenantId, 'QUOTE');
 
@@ -385,7 +385,7 @@ export class QuotesService {
     }
 
     // Update quote in transaction
-    const updatedQuote = await this.prisma.$transaction(async (tx) => {
+    const updatedQuote = await this.prisma.$transaction(async (tx: any) => {
       const updated = await tx.quote.update({
         where: {
           id,
@@ -450,7 +450,7 @@ export class QuotesService {
     }
 
     // Delete in transaction (lines will cascade)
-    await this.prisma.$transaction(async (tx) => {
+    await this.prisma.$transaction(async (tx: any) => {
       await this.quoteLinesService.deleteLines(tx, tenantId, id);
       await tx.quote.delete({
         where: {
@@ -612,7 +612,7 @@ export class QuotesService {
     }
 
     // Create job in transaction
-    const job = await this.prisma.$transaction(async (tx) => {
+    const job = await this.prisma.$transaction(async (tx: any) => {
       // Generate job number
       const jobNumber = await this.sequenceService.generateNumber(tenantId, 'JOB');
 
@@ -669,7 +669,7 @@ export class QuotesService {
     }
 
     // Create invoice in transaction
-    const invoice = await this.prisma.$transaction(async (tx) => {
+    const invoice = await this.prisma.$transaction(async (tx: any) => {
       // Generate invoice number
       const invoiceNumber = await this.sequenceService.generateNumber(
         tenantId,

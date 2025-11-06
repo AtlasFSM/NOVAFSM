@@ -57,7 +57,7 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
 
   private setupMiddleware() {
     // Middleware to inject tenantId filter on all queries
-    this.$use(async (params, next) => {
+    this.$use(async (params: any, next: any) => {
       // Models that don't require tenant filtering
       const excludedModels = ['Organization', 'TokenBlacklist'];
 

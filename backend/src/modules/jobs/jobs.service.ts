@@ -655,7 +655,7 @@ export class JobsService {
 
     if (conflictingJobs.length > 0) {
       this.logger.warn(
-        `Schedule conflict found for technician ${technicianId}: ${conflictingJobs.map((j) => j.number).join(', ')}`,
+        `Schedule conflict found for technician ${technicianId}: ${conflictingJobs.map((j: any) => j.number).join(', ')}`,
       );
       return true;
     }

@@ -27,7 +27,7 @@ export class SequenceService {
     const prefix = this.getPrefix(type);
 
     // Use transaction to ensure atomicity
-    const sequence = await this.prisma.$transaction(async (tx) => {
+    const sequence = await this.prisma.$transaction(async (tx: any) => {
       // Find or create sequence for this tenant, type, and year
       let seq = await tx.sequence.findUnique({
         where: {

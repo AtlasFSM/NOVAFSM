@@ -14,9 +14,9 @@ import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery } from '@ne
 import { DocumentsService } from './documents.service';
 import { UploadDocumentDto, GetPresignedUrlDto, CreateDocumentVersionDto } from './dto/upload-document.dto';
 import { UpdateDocumentDto } from './dto/update-document.dto';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { RolesGuard } from '../auth/guards/roles.guard';
-import { Roles } from '../auth/decorators/roles.decorator';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { RolesGuard } from '../../common/guards/roles.guard';
+import { Roles } from '../../common/decorators/roles.decorator';
 
 @ApiTags('Documents')
 @ApiBearerAuth()
@@ -29,7 +29,7 @@ export class DocumentsController {
   @Roles('ADMIN', 'DISPATCHER', 'TECHNICIAN')
   @ApiOperation({ summary: 'Get presigned URL for document upload' })
   @ApiResponse({ status: 200, description: 'Presigned URL generated' })
-  async getPresignedUrl(@Request() req, @Body() dto: GetPresignedUrlDto) {
+  async getPresignedUrl(@Request() req: any, @Body() dto: GetPresignedUrlDto) {
     return this.documentsService.getPresignedUploadUrl(req.user.tenantId, dto);
   }
 
@@ -37,7 +37,7 @@ export class DocumentsController {
   @Roles('ADMIN', 'DISPATCHER', 'TECHNICIAN')
   @ApiOperation({ summary: 'Create document record after S3 upload' })
   @ApiResponse({ status: 201, description: 'Document record created' })
-  async create(@Request() req, @Body() body: UploadDocumentDto & { s3Key: string }) {
+  async create(@Request() req: any, @Body() body: UploadDocumentDto & { s3Key: string }) {
     const { s3Key, ...dto } = body;
     return this.documentsService.create(req.user.tenantId, dto, s3Key);
   }
@@ -50,7 +50,7 @@ export class DocumentsController {
   @ApiQuery({ name: 'tags', required: false })
   @ApiQuery({ name: 'search', required: false })
   @ApiResponse({ status: 200, description: 'Documents retrieved successfully' })
-  async findAll(@Request() req, @Query() query: any) {
+  async findAll(@Request() req: any, @Query() query: any) {
     return this.documentsService.findAll(req.user.tenantId, query);
   }
 
@@ -59,7 +59,7 @@ export class DocumentsController {
   @ApiOperation({ summary: 'Get document by ID' })
   @ApiResponse({ status: 200, description: 'Document retrieved successfully' })
   @ApiResponse({ status: 404, description: 'Document not found' })
-  async findOne(@Request() req, @Param('id') id: string) {
+  async findOne(@Request() req: any, @Param('id') id: string) {
     return this.documentsService.findOne(req.user.tenantId, id);
   }
 
@@ -68,7 +68,7 @@ export class DocumentsController {
   @ApiOperation({ summary: 'Get presigned download URL' })
   @ApiResponse({ status: 200, description: 'Download URL generated' })
   @ApiResponse({ status: 404, description: 'Document not found' })
-  async getDownloadUrl(@Request() req, @Param('id') id: string) {
+  async getDownloadUrl(@Request() req: any, @Param('id') id: string) {
     return this.documentsService.getDownloadUrl(req.user.tenantId, id);
   }
 
@@ -77,7 +77,7 @@ export class DocumentsController {
   @ApiOperation({ summary: 'Update document metadata' })
   @ApiResponse({ status: 200, description: 'Document updated successfully' })
   @ApiResponse({ status: 404, description: 'Document not found' })
-  async update(@Request() req, @Param('id') id: string, @Body() dto: UpdateDocumentDto) {
+  async update(@Request() req: any, @Param('id') id: string, @Body() dto: UpdateDocumentDto) {
     return this.documentsService.update(req.user.tenantId, id, dto);
   }
 
@@ -86,7 +86,7 @@ export class DocumentsController {
   @ApiOperation({ summary: 'Delete document' })
   @ApiResponse({ status: 200, description: 'Document deleted successfully' })
   @ApiResponse({ status: 404, description: 'Document not found' })
-  async remove(@Request() req, @Param('id') id: string) {
+  async remove(@Request() req: any, @Param('id') id: string) {
     return this.documentsService.remove(req.user.tenantId, id);
   }
 
@@ -95,7 +95,7 @@ export class DocumentsController {
   @ApiOperation({ summary: 'Create new document version' })
   @ApiResponse({ status: 201, description: 'Version created successfully' })
   @ApiResponse({ status: 404, description: 'Parent document not found' })
-  async createVersion(@Request() req, @Body() body: CreateDocumentVersionDto & { s3Key: string }) {
+  async createVersion(@Request() req: any, @Body() body: CreateDocumentVersionDto & { s3Key: string }) {
     const { s3Key, ...dto } = body;
     return this.documentsService.createVersion(req.user.tenantId, dto, s3Key);
   }

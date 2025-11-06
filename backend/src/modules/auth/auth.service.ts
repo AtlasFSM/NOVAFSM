@@ -39,7 +39,7 @@ export class AuthService {
     const hashedPassword = await bcrypt.hash(dto.password, bcryptRounds);
 
     // Create organization and admin user in transaction
-    const result = await this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx: any) => {
       // Create organization
       const org = await tx.organization.create({
         data: {

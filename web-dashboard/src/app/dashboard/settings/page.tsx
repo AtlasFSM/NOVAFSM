@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/lib/api-client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -50,7 +50,7 @@ export default function SettingsPage() {
     timezone: '',
   });
 
-  useState(() => {
+  useEffect(() => {
     if (userData) {
       setProfileData({
         firstName: userData.firstName || '',
@@ -60,7 +60,7 @@ export default function SettingsPage() {
     }
   }, [userData]);
 
-  useState(() => {
+  useEffect(() => {
     if (orgData) {
       setOrgSettings({
         name: orgData.name || '',
@@ -71,6 +71,7 @@ export default function SettingsPage() {
 
   const updateProfileMutation = useMutation({
     mutationFn: async (data: any) => {
+      if (!userData?.id) throw new Error('User ID is required');
       const response = await apiClient.patch(`/api/v1/users/${userData.id}`, data);
       return response;
     },
@@ -81,6 +82,7 @@ export default function SettingsPage() {
 
   const updateOrgMutation = useMutation({
     mutationFn: async (data: any) => {
+      if (!userData?.organizationId) throw new Error('Organization ID is required');
       const response = await apiClient.put(`/api/v1/organizations/${userData.organizationId}`, data);
       return response;
     },

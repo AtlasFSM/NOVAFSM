@@ -338,7 +338,8 @@ export class InvoicesService {
    * Send invoice to customer via email (DRAFT → SENT)
    */
   async send(id: string) {
-    const invoice = await this.findOne(id);
+    const result = await this.findOne(id);
+    const invoice = result.data;
 
     if (invoice.status !== 'DRAFT') {
       throw new BadRequestException('Only DRAFT invoices can be sent');
@@ -361,7 +362,7 @@ export class InvoicesService {
         invoice,
       );
       this.logger.log(`Invoice ${invoice.number} sent via email to ${invoice.customer.email}`);
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(`Failed to send invoice email: ${error.message}`, error.stack);
       // Don't fail the request if email fails - invoice status is still updated
     }

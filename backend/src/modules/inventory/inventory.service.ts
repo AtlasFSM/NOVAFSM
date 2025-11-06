@@ -288,7 +288,7 @@ export class InventoryService {
     }
 
     // Record usage and adjust quantity in transaction
-    const result = await this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx: any) => {
       // Create usage record
       const usage = await tx.inventoryUsage.create({
         data: {

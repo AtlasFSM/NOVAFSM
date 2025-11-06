@@ -7,12 +7,12 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { KanbanBoard, KanbanColumn } from '@/components/kanban-board';
+import { KanbanBoard, KanbanColumn, KanbanItem } from '@/components/kanban-board';
 import { Plus, Calendar, User, MapPin, Clock, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
-interface Job {
+interface Job extends KanbanItem {
   id: string;
   number: string;
   title: string;
