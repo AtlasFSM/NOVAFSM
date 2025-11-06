@@ -6,6 +6,9 @@ import {
   AuthTokens,
   LoginCredentials,
   Job,
+  Asset,
+  Document,
+  Form,
   ApiResponse,
   ConflictResponse,
   PaginatedResponse,
@@ -307,6 +310,132 @@ class ApiClient {
     const headers = { 'Idempotency-Key': idempotencyKey };
 
     await this.client.put(`/jobs/${jobId}/time-entries/${timeEntryId}`, updates, { headers });
+  }
+
+  // Asset methods
+  async getAssets(params?: {
+    status?: string;
+    category?: string;
+  }): Promise<PaginatedResponse<Asset>> {
+    const { data } = await this.client.get<PaginatedResponse<Asset>>('/assets', { params });
+    return data;
+  }
+
+  async getAssetById(id: string): Promise<Asset> {
+    const { data } = await this.client.get<ApiResponse<Asset>>(`/assets/${id}`);
+    return data.data;
+  }
+
+  async updateAsset(
+    id: string,
+    updates: Partial<Asset>,
+    idempotencyKey?: string
+  ): Promise<Asset> {
+    const headers = idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {};
+
+    const { data } = await this.client.put<ApiResponse<Asset>>(
+      `/assets/${id}`,
+      updates,
+      { headers }
+    );
+    return data.data;
+  }
+
+  // Document methods
+  async getDocuments(params?: {
+    type?: string;
+    jobId?: string;
+    assetId?: string;
+  }): Promise<PaginatedResponse<Document>> {
+    const { data } = await this.client.get<PaginatedResponse<Document>>('/documents', { params });
+    return data;
+  }
+
+  async getDocumentById(id: string): Promise<Document> {
+    const { data } = await this.client.get<ApiResponse<Document>>(`/documents/${id}`);
+    return data.data;
+  }
+
+  async getDocumentPresignedUploadUrl(fileName: string, mimeType: string): Promise<PresignedUploadUrl> {
+    const { data } = await this.client.post<ApiResponse<PresignedUploadUrl>>(
+      '/documents/upload-url',
+      { fileName, mimeType }
+    );
+    return data.data;
+  }
+
+  async confirmDocumentUpload(
+    documentId: string,
+    uploadedUrl: string,
+    metadata: {
+      name: string;
+      type: string;
+      mimeType: string;
+      size: number;
+      jobId?: string;
+      assetId?: string;
+      description?: string;
+    },
+    idempotencyKey: string
+  ): Promise<void> {
+    const headers = { 'Idempotency-Key': idempotencyKey };
+
+    await this.client.post(
+      `/documents/${documentId}/confirm`,
+      { uploadedUrl, ...metadata },
+      { headers }
+    );
+  }
+
+  // Form methods
+  async getForms(params?: {
+    status?: string;
+    jobId?: string;
+    templateId?: string;
+  }): Promise<PaginatedResponse<Form>> {
+    const { data } = await this.client.get<PaginatedResponse<Form>>('/forms', { params });
+    return data;
+  }
+
+  async getFormById(id: string): Promise<Form> {
+    const { data } = await this.client.get<ApiResponse<Form>>(`/forms/${id}`);
+    return data.data;
+  }
+
+  async createForm(
+    formData: {
+      templateId: string;
+      jobId?: string;
+      fields: any[];
+    },
+    idempotencyKey: string
+  ): Promise<Form> {
+    const headers = { 'Idempotency-Key': idempotencyKey };
+
+    const { data } = await this.client.post<ApiResponse<Form>>(
+      '/forms',
+      formData,
+      { headers }
+    );
+    return data.data;
+  }
+
+  async updateForm(
+    id: string,
+    updates: {
+      status?: string;
+      fields?: any[];
+    },
+    idempotencyKey?: string
+  ): Promise<Form> {
+    const headers = idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {};
+
+    const { data } = await this.client.put<ApiResponse<Form>>(
+      `/forms/${id}`,
+      updates,
+      { headers }
+    );
+    return data.data;
   }
 
   // Generic request method for custom calls
