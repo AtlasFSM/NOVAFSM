@@ -10,6 +10,12 @@ import JobsScreen from './src/screens/JobsScreen';
 import JobDetailScreen from './src/screens/JobDetailScreen';
 import MapScreen from './src/screens/MapScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
+import AssetsScreen from './src/screens/AssetsScreen';
+import AssetDetailScreen from './src/screens/AssetDetailScreen';
+import DocumentsScreen from './src/screens/DocumentsScreen';
+import DocumentUploadScreen from './src/screens/DocumentUploadScreen';
+import FormsScreen from './src/screens/FormsScreen';
+import FormDetailScreen from './src/screens/FormDetailScreen';
 
 import { useAuthStore } from './src/store/auth-store';
 
@@ -34,6 +40,33 @@ function JobsStack() {
   );
 }
 
+function AssetsStack() {
+  return (
+    <Stack.Navigator>
+      <Stack.Screen name="AssetsList" component={AssetsScreen} options={{ title: 'Assets' }} />
+      <Stack.Screen name="AssetDetail" component={AssetDetailScreen} options={{ title: 'Asset Detail' }} />
+    </Stack.Navigator>
+  );
+}
+
+function DocumentsStack() {
+  return (
+    <Stack.Navigator>
+      <Stack.Screen name="DocumentsList" component={DocumentsScreen} options={{ title: 'Documents' }} />
+      <Stack.Screen name="DocumentUpload" component={DocumentUploadScreen} options={{ title: 'Upload Document' }} />
+    </Stack.Navigator>
+  );
+}
+
+function FormsStack() {
+  return (
+    <Stack.Navigator>
+      <Stack.Screen name="FormsList" component={FormsScreen} options={{ title: 'Forms' }} />
+      <Stack.Screen name="FormDetail" component={FormDetailScreen} options={{ title: 'Form Detail' }} />
+    </Stack.Navigator>
+  );
+}
+
 function MainTabs() {
   return (
     <Tab.Navigator
@@ -43,6 +76,9 @@ function MainTabs() {
       }}
     >
       <Tab.Screen name="Jobs" component={JobsStack} />
+      <Tab.Screen name="Assets" component={AssetsStack} />
+      <Tab.Screen name="Documents" component={DocumentsStack} />
+      <Tab.Screen name="Forms" component={FormsStack} />
       <Tab.Screen name="Map" component={MapScreen} />
       <Tab.Screen name="Profile" component={ProfileScreen} />
     </Tab.Navigator>

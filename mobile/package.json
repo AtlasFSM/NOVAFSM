@@ -22,6 +22,7 @@
     "expo-file-system": "~17.0.1",
     "expo-camera": "~15.0.5",
     "expo-image-picker": "~15.0.4",
+    "expo-document-picker": "~12.0.1",
     "expo-net-info": "~12.0.0",
     "expo-background-fetch": "~12.0.1",
     "expo-task-manager": "~11.8.1",
