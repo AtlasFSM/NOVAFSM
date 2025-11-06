@@ -123,6 +123,9 @@ export enum SyncEntity {
   PHOTO = 'PHOTO',
   SIGNATURE = 'SIGNATURE',
   TIME_ENTRY = 'TIME_ENTRY',
+  ASSET = 'ASSET',
+  DOCUMENT = 'DOCUMENT',
+  FORM = 'FORM',
 }
 
 export interface SyncQueueItem {
@@ -190,11 +193,17 @@ export type RootStackParamList = {
   Login: undefined;
   Main: undefined;
   JobDetail: { jobId: string };
+  AssetDetail: { assetId: string };
+  DocumentUpload: { documentId?: string };
+  FormDetail: { formId: string };
 };
 
 export type MainTabParamList = {
   Jobs: undefined;
   Map: undefined;
+  Assets: undefined;
+  Documents: undefined;
+  Forms: undefined;
   Profile: undefined;
 };
 
@@ -249,4 +258,100 @@ export interface CheckOutData {
   location: LocationData;
   timestamp: string;
   notes?: string;
+}
+
+// Asset Types
+export enum AssetStatus {
+  AVAILABLE = 'AVAILABLE',
+  IN_USE = 'IN_USE',
+  MAINTENANCE = 'MAINTENANCE',
+  RETIRED = 'RETIRED',
+}
+
+export interface Asset {
+  id: string;
+  tenantId: string;
+  code: string;
+  name: string;
+  description: string | null;
+  category: string;
+  status: AssetStatus;
+  serialNumber: string | null;
+  assignedToTechnicianId: string | null;
+  assignedToJobId: string | null;
+  syncStatus: SyncStatus;
+  version: number;
+  lastSyncedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface LocalAsset extends Asset {
+  localId?: number;
+}
+
+// Document Types
+export enum DocumentType {
+  INVOICE = 'INVOICE',
+  QUOTE = 'QUOTE',
+  REPORT = 'REPORT',
+  PHOTO = 'PHOTO',
+  OTHER = 'OTHER',
+}
+
+export interface Document {
+  id: string;
+  tenantId: string;
+  name: string;
+  type: DocumentType;
+  mimeType: string;
+  size: number;
+  uri: string;
+  uploaded: boolean;
+  uploadedUrl: string | null;
+  jobId: string | null;
+  assetId: string | null;
+  description: string | null;
+  syncStatus: SyncStatus;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface LocalDocument extends Document {
+  localId?: number;
+}
+
+// Form Types
+export enum FormStatus {
+  DRAFT = 'DRAFT',
+  SUBMITTED = 'SUBMITTED',
+  APPROVED = 'APPROVED',
+  REJECTED = 'REJECTED',
+}
+
+export interface FormField {
+  id: string;
+  label: string;
+  type: 'text' | 'number' | 'date' | 'checkbox' | 'signature';
+  value: string | null;
+  required: boolean;
+}
+
+export interface Form {
+  id: string;
+  tenantId: string;
+  templateId: string;
+  templateName: string;
+  jobId: string | null;
+  status: FormStatus;
+  fields: FormField[];
+  syncStatus: SyncStatus;
+  version: number;
+  lastSyncedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface LocalForm extends Form {
+  localId?: number;
 }
