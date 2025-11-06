@@ -59,7 +59,7 @@ jobs:
       - name: Run unit tests
         id: test
         working-directory: backend
-        run: npm run test -- --coverage --coverageReporters=json --coverageReporters=lcov --coverageReporters=text-summary
+        run: npm run test -- --coverage --coverageReporters=json --coverageReporters=json-summary --coverageReporters=lcov --coverageReporters=text-summary
         continue-on-error: true
 
       - name: Run integration tests
@@ -69,6 +69,28 @@ jobs:
         continue-on-error: true
         env:
           NODE_ENV: test
+
+      - name: Check coverage threshold
+        id: coverage-gate
+        working-directory: backend
+        run: |
+          if [ -f coverage/coverage-summary.json ]; then
+            COVERAGE=$(cat coverage/coverage-summary.json | jq -r '.total.lines.pct')
+            echo "coverage=$COVERAGE" >> $GITHUB_OUTPUT
+            echo "Line coverage: $COVERAGE%"
+            if (( $(echo "$COVERAGE < 80" | bc -l) )); then
+              echo "status=failed" >> $GITHUB_OUTPUT
+              echo "❌ Coverage is below 80% threshold: $COVERAGE%"
+              exit 1
+            fi
+            echo "status=passed" >> $GITHUB_OUTPUT
+            echo "✅ Coverage meets 80% threshold: $COVERAGE%"
+          else
+            echo "coverage=N/A" >> $GITHUB_OUTPUT
+            echo "status=skipped" >> $GITHUB_OUTPUT
+            echo "⚠️ Coverage summary not found, skipping check"
+          fi
+        continue-on-error: true
 
       - name: Extract test coverage summary
         id: coverage
@@ -90,7 +112,7 @@ jobs:
           retention-days: 7
 
       - name: Set job status
-        if: steps.lint.outcome == 'failure' || steps.typecheck.outcome == 'failure' || steps.test.outcome == 'failure' || steps.integration-test.outcome == 'failure'
+        if: steps.lint.outcome == 'failure' || steps.typecheck.outcome == 'failure' || steps.test.outcome == 'failure' || steps.integration-test.outcome == 'failure' || steps.coverage-gate.outcome == 'failure'
         run: exit 1
 
   # ============================================

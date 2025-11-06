@@ -72,7 +72,7 @@ jobs:
 
       - name: Run unit tests
         working-directory: backend
-        run: npm run test -- --coverage --coverageReporters=json --coverageReporters=lcov
+        run: npm run test -- --coverage --coverageReporters=json --coverageReporters=json-summary --coverageReporters=lcov --coverageReporters=text
 
       - name: Run integration tests
         working-directory: backend
@@ -80,6 +80,21 @@ jobs:
         env:
           # Testcontainers will automatically start required services
           NODE_ENV: test
+
+      - name: Check coverage threshold
+        working-directory: backend
+        run: |
+          if [ -f coverage/coverage-summary.json ]; then
+            COVERAGE=$(cat coverage/coverage-summary.json | jq -r '.total.lines.pct')
+            echo "Line coverage: $COVERAGE%"
+            if (( $(echo "$COVERAGE < 80" | bc -l) )); then
+              echo "❌ Coverage is below 80% threshold: $COVERAGE%"
+              exit 1
+            fi
+            echo "✅ Coverage meets 80% threshold: $COVERAGE%"
+          else
+            echo "⚠️ Coverage summary not found, skipping check"
+          fi
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
