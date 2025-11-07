@@ -1,0 +1,14 @@
+# Example Terraform Variables for Backend Bootstrap
+# Copy this file to terraform.tfvars and customize as needed
+
+# AWS Region for backend resources
+aws_region = "us-east-1"
+
+# S3 Bucket name for Terraform state
+# Must be globally unique across ALL AWS accounts
+# Default: novafsm-terraform-state
+# state_bucket_name = "your-company-novafsm-terraform-state"
+
+# DynamoDB table name for state locking
+# Default: novafsm-terraform-locks
+# lock_table_name = "your-company-novafsm-terraform-locks"
