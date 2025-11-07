@@ -1,0 +1,294 @@
+---
+# NoVaFSM Infrastructure Dashboard ConfigMap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-novafsm-infrastructure
+  namespace: monitoring
+  labels:
+    app: grafana
+    component: monitoring
+    dashboard: novafsm-infrastructure
+data:
+  novafsm-infrastructure-dashboard.json: |
+    {
+      "dashboard": {
+        "title": "NoVaFSM Infrastructure Metrics",
+        "tags": ["novafsm", "infrastructure", "kubernetes", "production"],
+        "timezone": "browser",
+        "schemaVersion": 36,
+        "version": 1,
+        "refresh": "30s",
+        "time": {
+          "from": "now-1h",
+          "to": "now"
+        },
+        "panels": [
+          {
+            "id": 1,
+            "title": "Pod CPU Usage",
+            "type": "graph",
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+            "targets": [
+              {
+                "expr": "sum(rate(container_cpu_usage_seconds_total{namespace=\"production\",pod=~\"novafsm.*\"}[5m])) by (pod)",
+                "legendFormat": "{{pod}}",
+                "refId": "A"
+              }
+            ],
+            "yaxes": [
+              {"format": "percentunit", "label": "CPU Usage"},
+              {"format": "short"}
+            ]
+          },
+          {
+            "id": 2,
+            "title": "Pod Memory Usage",
+            "type": "graph",
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+            "targets": [
+              {
+                "expr": "sum(container_memory_working_set_bytes{namespace=\"production\",pod=~\"novafsm.*\"}) by (pod)",
+                "legendFormat": "{{pod}}",
+                "refId": "A"
+              }
+            ],
+            "yaxes": [
+              {"format": "bytes", "label": "Memory"},
+              {"format": "short"}
+            ]
+          },
+          {
+            "id": 3,
+            "title": "Pod Network I/O",
+            "type": "graph",
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+            "targets": [
+              {
+                "expr": "sum(rate(container_network_receive_bytes_total{namespace=\"production\",pod=~\"novafsm.*\"}[5m])) by (pod)",
+                "legendFormat": "{{pod}} - Receive",
+                "refId": "A"
+              },
+              {
+                "expr": "sum(rate(container_network_transmit_bytes_total{namespace=\"production\",pod=~\"novafsm.*\"}[5m])) by (pod)",
+                "legendFormat": "{{pod}} - Transmit",
+                "refId": "B"
+              }
+            ],
+            "yaxes": [
+              {"format": "Bps", "label": "Network I/O"},
+              {"format": "short"}
+            ]
+          },
+          {
+            "id": 4,
+            "title": "Pod Restarts",
+            "type": "graph",
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+            "targets": [
+              {
+                "expr": "sum(kube_pod_container_status_restarts_total{namespace=\"production\",pod=~\"novafsm.*\"}) by (pod)",
+                "legendFormat": "{{pod}}",
+                "refId": "A"
+              }
+            ],
+            "yaxes": [
+              {"format": "short", "label": "Restart Count"},
+              {"format": "short"}
+            ]
+          },
+          {
+            "id": 5,
+            "title": "Total Pods Running",
+            "type": "stat",
+            "gridPos": {"h": 4, "w": 6, "x": 0, "y": 16},
+            "targets": [
+              {
+                "expr": "count(kube_pod_status_phase{namespace=\"production\",phase=\"Running\",pod=~\"novafsm.*\"})",
+                "refId": "A"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "thresholds": {
+                  "steps": [
+                    {"value": 0, "color": "red"},
+                    {"value": 3, "color": "yellow"},
+                    {"value": 5, "color": "green"}
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "id": 6,
+            "title": "Total CPU Usage",
+            "type": "stat",
+            "gridPos": {"h": 4, "w": 6, "x": 6, "y": 16},
+            "targets": [
+              {
+                "expr": "sum(rate(container_cpu_usage_seconds_total{namespace=\"production\",pod=~\"novafsm.*\"}[5m]))",
+                "refId": "A"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "unit": "percentunit",
+                "thresholds": {
+                  "steps": [
+                    {"value": 0, "color": "green"},
+                    {"value": 0.7, "color": "yellow"},
+                    {"value": 0.9, "color": "red"}
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "id": 7,
+            "title": "Total Memory Usage",
+            "type": "stat",
+            "gridPos": {"h": 4, "w": 6, "x": 12, "y": 16},
+            "targets": [
+              {
+                "expr": "sum(container_memory_working_set_bytes{namespace=\"production\",pod=~\"novafsm.*\"})",
+                "refId": "A"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "unit": "bytes",
+                "thresholds": {
+                  "steps": [
+                    {"value": 0, "color": "green"},
+                    {"value": 8589934592, "color": "yellow"},
+                    {"value": 12884901888, "color": "red"}
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "id": 8,
+            "title": "Node CPU Usage",
+            "type": "stat",
+            "gridPos": {"h": 4, "w": 6, "x": 18, "y": 16},
+            "targets": [
+              {
+                "expr": "avg(1 - avg(rate(node_cpu_seconds_total{mode=\"idle\"}[5m])) by (instance))",
+                "refId": "A"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "unit": "percentunit",
+                "thresholds": {
+                  "steps": [
+                    {"value": 0, "color": "green"},
+                    {"value": 0.75, "color": "yellow"},
+                    {"value": 0.9, "color": "red"}
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "id": 9,
+            "title": "Pod Status by Phase",
+            "type": "piechart",
+            "gridPos": {"h": 8, "w": 8, "x": 0, "y": 20},
+            "targets": [
+              {
+                "expr": "sum(kube_pod_status_phase{namespace=\"production\",pod=~\"novafsm.*\"}) by (phase)",
+                "legendFormat": "{{phase}}",
+                "refId": "A"
+              }
+            ]
+          },
+          {
+            "id": 10,
+            "title": "Container States",
+            "type": "piechart",
+            "gridPos": {"h": 8, "w": 8, "x": 8, "y": 20},
+            "targets": [
+              {
+                "expr": "sum(kube_pod_container_status_running{namespace=\"production\",pod=~\"novafsm.*\"})",
+                "legendFormat": "Running",
+                "refId": "A"
+              },
+              {
+                "expr": "sum(kube_pod_container_status_waiting{namespace=\"production\",pod=~\"novafsm.*\"})",
+                "legendFormat": "Waiting",
+                "refId": "B"
+              },
+              {
+                "expr": "sum(kube_pod_container_status_terminated{namespace=\"production\",pod=~\"novafsm.*\"})",
+                "legendFormat": "Terminated",
+                "refId": "C"
+              }
+            ]
+          },
+          {
+            "id": 11,
+            "title": "Disk I/O",
+            "type": "graph",
+            "gridPos": {"h": 8, "w": 8, "x": 16, "y": 20},
+            "targets": [
+              {
+                "expr": "sum(rate(container_fs_reads_bytes_total{namespace=\"production\",pod=~\"novafsm.*\"}[5m])) by (pod)",
+                "legendFormat": "{{pod}} - Read",
+                "refId": "A"
+              },
+              {
+                "expr": "sum(rate(container_fs_writes_bytes_total{namespace=\"production\",pod=~\"novafsm.*\"}[5m])) by (pod)",
+                "legendFormat": "{{pod}} - Write",
+                "refId": "B"
+              }
+            ],
+            "yaxes": [
+              {"format": "Bps", "label": "Disk I/O"},
+              {"format": "short"}
+            ]
+          },
+          {
+            "id": 12,
+            "title": "Persistent Volume Usage",
+            "type": "graph",
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 28},
+            "targets": [
+              {
+                "expr": "sum(kubelet_volume_stats_used_bytes{namespace=\"production\"}) by (persistentvolumeclaim) / sum(kubelet_volume_stats_capacity_bytes{namespace=\"production\"}) by (persistentvolumeclaim)",
+                "legendFormat": "{{persistentvolumeclaim}}",
+                "refId": "A"
+              }
+            ],
+            "yaxes": [
+              {"format": "percentunit", "label": "Disk Usage %"},
+              {"format": "short"}
+            ]
+          },
+          {
+            "id": 13,
+            "title": "HPA Status (Autoscaling)",
+            "type": "graph",
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 28},
+            "targets": [
+              {
+                "expr": "kube_horizontalpodautoscaler_status_current_replicas{namespace=\"production\"}",
+                "legendFormat": "Current Replicas - {{horizontalpodautoscaler}}",
+                "refId": "A"
+              },
+              {
+                "expr": "kube_horizontalpodautoscaler_status_desired_replicas{namespace=\"production\"}",
+                "legendFormat": "Desired Replicas - {{horizontalpodautoscaler}}",
+                "refId": "B"
+              }
+            ],
+            "yaxes": [
+              {"format": "short", "label": "Replicas"},
+              {"format": "short"}
+            ]
+          }
+        ]
+      }
+    }

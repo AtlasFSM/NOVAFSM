@@ -1,0 +1,12 @@
+---
+# Monitoring Namespace
+# All monitoring components (Prometheus, Grafana) will be deployed here
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: monitoring
+  labels:
+    name: monitoring
+    purpose: observability
+    managed-by: kubectl

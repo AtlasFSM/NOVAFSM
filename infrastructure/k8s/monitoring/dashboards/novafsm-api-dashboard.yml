@@ -1,0 +1,232 @@
+---
+# NoVaFSM API Dashboard ConfigMap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-novafsm-api
+  namespace: monitoring
+  labels:
+    app: grafana
+    component: monitoring
+    dashboard: novafsm-api
+data:
+  novafsm-api-dashboard.json: |
+    {
+      "dashboard": {
+        "title": "NoVaFSM API Metrics",
+        "tags": ["novafsm", "api", "production"],
+        "timezone": "browser",
+        "schemaVersion": 36,
+        "version": 1,
+        "refresh": "30s",
+        "time": {
+          "from": "now-1h",
+          "to": "now"
+        },
+        "panels": [
+          {
+            "id": 1,
+            "title": "Request Rate (req/s)",
+            "type": "graph",
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+            "targets": [
+              {
+                "expr": "sum(rate(http_requests_total{job=\"novafsm-api\"}[5m]))",
+                "legendFormat": "Total Requests",
+                "refId": "A"
+              }
+            ],
+            "yaxes": [
+              {"format": "reqps", "label": "Requests/sec"},
+              {"format": "short"}
+            ]
+          },
+          {
+            "id": 2,
+            "title": "Error Rate (%)",
+            "type": "graph",
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+            "targets": [
+              {
+                "expr": "(sum(rate(http_requests_total{job=\"novafsm-api\",status=~\"5..\"}[5m])) / sum(rate(http_requests_total{job=\"novafsm-api\"}[5m]))) * 100",
+                "legendFormat": "5xx Error Rate",
+                "refId": "A"
+              },
+              {
+                "expr": "(sum(rate(http_requests_total{job=\"novafsm-api\",status=~\"4..\"}[5m])) / sum(rate(http_requests_total{job=\"novafsm-api\"}[5m]))) * 100",
+                "legendFormat": "4xx Error Rate",
+                "refId": "B"
+              }
+            ],
+            "yaxes": [
+              {"format": "percent", "label": "Error %"},
+              {"format": "short"}
+            ],
+            "alert": {
+              "conditions": [
+                {
+                  "evaluator": {"params": [1], "type": "gt"},
+                  "operator": {"type": "and"},
+                  "query": {"params": ["A", "5m", "now"]},
+                  "reducer": {"params": [], "type": "avg"},
+                  "type": "query"
+                }
+              ],
+              "name": "High Error Rate Alert"
+            }
+          },
+          {
+            "id": 3,
+            "title": "Response Time (p50, p95, p99)",
+            "type": "graph",
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+            "targets": [
+              {
+                "expr": "histogram_quantile(0.50, sum(rate(http_request_duration_seconds_bucket{job=\"novafsm-api\"}[5m])) by (le))",
+                "legendFormat": "p50",
+                "refId": "A"
+              },
+              {
+                "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{job=\"novafsm-api\"}[5m])) by (le))",
+                "legendFormat": "p95",
+                "refId": "B"
+              },
+              {
+                "expr": "histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket{job=\"novafsm-api\"}[5m])) by (le))",
+                "legendFormat": "p99",
+                "refId": "C"
+              }
+            ],
+            "yaxes": [
+              {"format": "s", "label": "Duration"},
+              {"format": "short"}
+            ]
+          },
+          {
+            "id": 4,
+            "title": "Request by Endpoint (Top 10)",
+            "type": "graph",
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+            "targets": [
+              {
+                "expr": "topk(10, sum(rate(http_requests_total{job=\"novafsm-api\"}[5m])) by (endpoint))",
+                "legendFormat": "{{endpoint}}",
+                "refId": "A"
+              }
+            ]
+          },
+          {
+            "id": 5,
+            "title": "Active Pods",
+            "type": "stat",
+            "gridPos": {"h": 4, "w": 6, "x": 0, "y": 16},
+            "targets": [
+              {
+                "expr": "count(up{job=\"novafsm-api\"} == 1)",
+                "refId": "A"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "thresholds": {
+                  "steps": [
+                    {"value": 0, "color": "red"},
+                    {"value": 2, "color": "yellow"},
+                    {"value": 3, "color": "green"}
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "id": 6,
+            "title": "Average Response Time",
+            "type": "stat",
+            "gridPos": {"h": 4, "w": 6, "x": 6, "y": 16},
+            "targets": [
+              {
+                "expr": "histogram_quantile(0.50, sum(rate(http_request_duration_seconds_bucket{job=\"novafsm-api\"}[5m])) by (le))",
+                "refId": "A"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "unit": "s",
+                "thresholds": {
+                  "steps": [
+                    {"value": 0, "color": "green"},
+                    {"value": 0.5, "color": "yellow"},
+                    {"value": 1, "color": "red"}
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "id": 7,
+            "title": "Total Requests (Last 5m)",
+            "type": "stat",
+            "gridPos": {"h": 4, "w": 6, "x": 12, "y": 16},
+            "targets": [
+              {
+                "expr": "sum(increase(http_requests_total{job=\"novafsm-api\"}[5m]))",
+                "refId": "A"
+              }
+            ]
+          },
+          {
+            "id": 8,
+            "title": "Database Connections",
+            "type": "stat",
+            "gridPos": {"h": 4, "w": 6, "x": 18, "y": 16},
+            "targets": [
+              {
+                "expr": "sum(database_connections{job=\"novafsm-api\",state=\"active\"})",
+                "refId": "A"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "thresholds": {
+                  "steps": [
+                    {"value": 0, "color": "green"},
+                    {"value": 50, "color": "yellow"},
+                    {"value": 80, "color": "red"}
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "id": 9,
+            "title": "Database Query Duration (p95)",
+            "type": "graph",
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 20},
+            "targets": [
+              {
+                "expr": "histogram_quantile(0.95, sum(rate(database_query_duration_seconds_bucket{job=\"novafsm-api\"}[5m])) by (le, operation))",
+                "legendFormat": "{{operation}}",
+                "refId": "A"
+              }
+            ],
+            "yaxes": [
+              {"format": "s", "label": "Duration"},
+              {"format": "short"}
+            ]
+          },
+          {
+            "id": 10,
+            "title": "HTTP Status Codes Distribution",
+            "type": "piechart",
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 20},
+            "targets": [
+              {
+                "expr": "sum(increase(http_requests_total{job=\"novafsm-api\"}[5m])) by (status)",
+                "legendFormat": "{{status}}",
+                "refId": "A"
+              }
+            ]
+          }
+        ]
+      }
+    }

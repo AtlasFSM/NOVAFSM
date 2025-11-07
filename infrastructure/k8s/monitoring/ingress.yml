@@ -1,0 +1,79 @@
+---
+# Ingress for Monitoring Stack (Prometheus + Grafana)
+# Provides external access to monitoring dashboards
+# Requires: Ingress Controller (nginx, ALB, etc.) and cert-manager for TLS
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: monitoring-ingress
+  namespace: monitoring
+  labels:
+    app: monitoring
+    component: ingress
+  annotations:
+    # Nginx Ingress Controller annotations
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+
+    # Rate limiting (optional)
+    nginx.ingress.kubernetes.io/limit-rps: "10"
+
+    # Authentication (optional - uncomment to enable basic auth)
+    # nginx.ingress.kubernetes.io/auth-type: basic
+    # nginx.ingress.kubernetes.io/auth-secret: monitoring-basic-auth
+    # nginx.ingress.kubernetes.io/auth-realm: 'Authentication Required - Monitoring'
+
+    # AWS ALB Controller annotations (if using ALB instead of nginx)
+    # alb.ingress.kubernetes.io/scheme: internet-facing
+    # alb.ingress.kubernetes.io/target-type: ip
+    # alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:REGION:ACCOUNT:certificate/CERT_ID
+    # alb.ingress.kubernetes.io/ssl-policy: ELBSecurityPolicy-TLS-1-2-2017-01
+
+    # cert-manager for automatic TLS (if using cert-manager)
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    cert-manager.io/acme-challenge-type: http01
+
+spec:
+  ingressClassName: nginx  # or 'alb' for AWS ALB
+
+  # TLS configuration
+  tls:
+    - hosts:
+        - grafana.novafsm.example.com
+        - prometheus.novafsm.example.com
+      secretName: monitoring-tls
+
+  rules:
+    # Grafana
+    - host: grafana.novafsm.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: grafana
+                port:
+                  number: 80
+
+    # Prometheus
+    - host: prometheus.novafsm.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: prometheus
+                port:
+                  number: 9090
+
+---
+# Basic Auth Secret for Ingress (optional)
+# Create with: htpasswd -c auth monitoring-user
+# kubectl create secret generic monitoring-basic-auth --from-file=auth -n monitoring
+
+# Example users file format (auth):
+# monitoring-user:$apr1$xyz...encrypted_password
