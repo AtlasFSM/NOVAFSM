@@ -1,0 +1,53 @@
+---
+# Fluent Bit Service Account
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: fluent-bit
+  namespace: kube-system
+  labels:
+    app: fluent-bit
+    component: logging
+
+---
+# ClusterRole for Fluent Bit
+# Needs cluster-wide read access to collect logs from all pods
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: fluent-bit
+  labels:
+    app: fluent-bit
+    component: logging
+rules:
+  # Read pods and namespaces for metadata enrichment
+  - apiGroups: [""]
+    resources:
+      - namespaces
+      - pods
+      - pods/logs
+    verbs: ["get", "list", "watch"]
+
+  # Read nodes for log collection
+  - apiGroups: [""]
+    resources:
+      - nodes
+    verbs: ["get", "list"]
+
+---
+# ClusterRoleBinding for Fluent Bit
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: fluent-bit
+  labels:
+    app: fluent-bit
+    component: logging
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: fluent-bit
+subjects:
+  - kind: ServiceAccount
+    name: fluent-bit
+    namespace: kube-system

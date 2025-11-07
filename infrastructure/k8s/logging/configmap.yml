@@ -1,0 +1,193 @@
+---
+# Fluent Bit Configuration
+# Collects logs from all containers and forwards to AWS CloudWatch Logs
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fluent-bit-config
+  namespace: kube-system
+  labels:
+    app: fluent-bit
+    component: logging
+data:
+  # Main Fluent Bit configuration
+  fluent-bit.conf: |
+    [SERVICE]
+        Daemon                Off
+        Flush                 5
+        Log_Level             info
+        Parsers_File          parsers.conf
+        HTTP_Server           On
+        HTTP_Listen           0.0.0.0
+        HTTP_Port             2020
+        Health_Check          On
+        storage.path          /var/fluent-bit/state/flb-storage/
+        storage.sync          normal
+        storage.checksum      off
+        storage.max_chunks_up 128
+        storage.backlog.mem_limit 5M
+
+    # Include input, filter, and output configurations
+    @INCLUDE input-kubernetes.conf
+    @INCLUDE filter-kubernetes.conf
+    @INCLUDE output-cloudwatch.conf
+
+  # Input: Kubernetes container logs
+  input-kubernetes.conf: |
+    [INPUT]
+        Name                tail
+        Tag                 kube.*
+        Path                /var/log/containers/*.log
+        multiline.parser    docker, cri
+        DB                  /var/fluent-bit/state/flb_kube.db
+        Mem_Buf_Limit       50MB
+        Skip_Long_Lines     On
+        Refresh_Interval    10
+        storage.type        filesystem
+
+    # Input: Systemd logs (kubelet, docker, etc.)
+    [INPUT]
+        Name                systemd
+        Tag                 systemd.*
+        Systemd_Filter      _SYSTEMD_UNIT=kubelet.service
+        Systemd_Filter      _SYSTEMD_UNIT=docker.service
+        Read_From_Tail      On
+        Strip_Underscores   On
+
+  # Filter: Kubernetes metadata enrichment
+  filter-kubernetes.conf: |
+    # Add Kubernetes metadata (pod name, namespace, labels, annotations)
+    [FILTER]
+        Name                kubernetes
+        Match               kube.*
+        Kube_URL            https://kubernetes.default.svc:443
+        Kube_CA_File        /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+        Kube_Token_File     /var/run/secrets/kubernetes.io/serviceaccount/token
+        Kube_Tag_Prefix     kube.var.log.containers.
+        Merge_Log           On
+        Keep_Log            Off
+        K8S-Logging.Parser  On
+        K8S-Logging.Exclude On
+        Labels              On
+        Annotations         Off
+        Buffer_Size         256KB
+
+    # Parse JSON logs from applications
+    [FILTER]
+        Name                parser
+        Match               kube.*
+        Key_Name            log
+        Parser              json
+        Reserve_Data        On
+        Preserve_Key        On
+
+    # Add cluster-level metadata
+    [FILTER]
+        Name                modify
+        Match               kube.*
+        Add                 cluster_name novafsm-production
+        Add                 environment production
+        Add                 region us-east-1
+
+    # Nest Kubernetes metadata under 'kubernetes' key
+    [FILTER]
+        Name                nest
+        Match               kube.*
+        Operation           nest
+        Wildcard            kubernetes_*
+        Nest_under          kubernetes
+        Remove_prefix       kubernetes_
+
+    # Filter out logs from excluded namespaces (optional)
+    # [FILTER]
+    #     Name                grep
+    #     Match               kube.*
+    #     Exclude             kubernetes.namespace_name (kube-system|kube-public|kube-node-lease)
+
+  # Output: AWS CloudWatch Logs
+  output-cloudwatch.conf: |
+    # Send NoVaFSM production logs to CloudWatch
+    [OUTPUT]
+        Name                cloudwatch_logs
+        Match               kube.var.log.containers.novafsm-api-*_production_*
+        region              ${AWS_REGION}
+        log_group_name      /aws/eks/novafsm-production/application
+        log_stream_prefix   api-
+        auto_create_group   On
+        retry_limit         2
+        log_retention_days  30
+
+    [OUTPUT]
+        Name                cloudwatch_logs
+        Match               kube.var.log.containers.novafsm-web-*_production_*
+        region              ${AWS_REGION}
+        log_group_name      /aws/eks/novafsm-production/application
+        log_stream_prefix   web-
+        auto_create_group   On
+        retry_limit         2
+        log_retention_days  30
+
+    # Send Kubernetes system logs to CloudWatch
+    [OUTPUT]
+        Name                cloudwatch_logs
+        Match               systemd.*
+        region              ${AWS_REGION}
+        log_group_name      /aws/eks/novafsm-production/cluster
+        log_stream_prefix   systemd-
+        auto_create_group   On
+        retry_limit         2
+        log_retention_days  7
+
+    # Send all other Kubernetes logs
+    [OUTPUT]
+        Name                cloudwatch_logs
+        Match               kube.*
+        region              ${AWS_REGION}
+        log_group_name      /aws/eks/novafsm-production/dataplane
+        log_stream_prefix   ${HOSTNAME}-
+        auto_create_group   On
+        retry_limit         2
+        log_retention_days  7
+
+  # Parsers configuration
+  parsers.conf: |
+    # JSON parser for application logs
+    [PARSER]
+        Name                json
+        Format              json
+        Time_Key            time
+        Time_Format         %Y-%m-%dT%H:%M:%S.%L%z
+        Time_Keep           On
+
+    # Docker parser for container logs
+    [PARSER]
+        Name                docker
+        Format              json
+        Time_Key            time
+        Time_Format         %Y-%m-%dT%H:%M:%S.%L%z
+        Time_Keep           On
+
+    # CRI parser for containerd
+    [PARSER]
+        Name                cri
+        Format              regex
+        Regex               ^(?<time>[^ ]+) (?<stream>stdout|stderr) (?<logtag>[^ ]*) (?<log>.*)$
+        Time_Key            time
+        Time_Format         %Y-%m-%dT%H:%M:%S.%L%z
+        Time_Keep           On
+
+    # Nginx access log parser
+    [PARSER]
+        Name                nginx
+        Format              regex
+        Regex               ^(?<remote>[^ ]*) (?<host>[^ ]*) (?<user>[^ ]*) \[(?<time>[^\]]*)\] "(?<method>\S+)(?: +(?<path>[^\"]*?)(?: +\S*)?)?" (?<code>[^ ]*) (?<size>[^ ]*)(?: "(?<referer>[^\"]*)" "(?<agent>[^\"]*)")?$
+        Time_Key            time
+        Time_Format         %d/%b/%Y:%H:%M:%S %z
+
+    # Syslog parser
+    [PARSER]
+        Name                syslog
+        Format              regex
+        Regex               ^<(?<pri>[0-9]+)>(?<time>[^ ]* {1,2}[^ ]* [^ ]*) (?<host>[^ ]*) (?<ident>[a-zA-Z0-9_\/\.\-]*)(?:\[(?<pid>[0-9]+)\])?(?:[^\:]*\:)? *(?<message>.*)$
+        Time_Key            time
+        Time_Format         %b %d %H:%M:%S

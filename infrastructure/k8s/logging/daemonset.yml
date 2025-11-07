@@ -1,0 +1,185 @@
+---
+# Fluent Bit DaemonSet
+# Runs on every node to collect container logs and forward to CloudWatch
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: fluent-bit
+  namespace: kube-system
+  labels:
+    app: fluent-bit
+    component: logging
+    version: v2.2.0
+spec:
+  selector:
+    matchLabels:
+      app: fluent-bit
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+  template:
+    metadata:
+      labels:
+        app: fluent-bit
+        component: logging
+        version: v2.2.0
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "2020"
+        prometheus.io/path: "/api/v1/metrics/prometheus"
+    spec:
+      serviceAccountName: fluent-bit
+      hostNetwork: false
+      dnsPolicy: ClusterFirst
+
+      # Tolerations to run on all nodes (including masters)
+      tolerations:
+        - key: node-role.kubernetes.io/master
+          operator: Exists
+          effect: NoSchedule
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule
+        - operator: "Exists"
+          effect: "NoExecute"
+        - operator: "Exists"
+          effect: "NoSchedule"
+
+      # Init container to set permissions
+      initContainers:
+        - name: init-state-dir
+          image: busybox:latest
+          command: ['sh', '-c', 'mkdir -p /var/fluent-bit/state && chmod 777 /var/fluent-bit/state']
+          volumeMounts:
+            - name: varlog
+              mountPath: /var/log
+            - name: varlibdockercontainers
+              mountPath: /var/lib/docker/containers
+              readOnly: true
+            - name: fluent-bit-state
+              mountPath: /var/fluent-bit/state
+
+      containers:
+        - name: fluent-bit
+          image: public.ecr.aws/aws-observability/aws-for-fluent-bit:2.31.12
+          imagePullPolicy: IfNotPresent
+
+          env:
+            # AWS Region for CloudWatch
+            - name: AWS_REGION
+              value: "us-east-1"
+
+            # Use IRSA (IAM Roles for Service Accounts) for AWS credentials
+            # No need to provide AWS_ACCESS_KEY_ID or AWS_SECRET_ACCESS_KEY
+            # EKS automatically injects credentials via webhook
+
+            # Fluent Bit settings
+            - name: FLB_LOG_LEVEL
+              value: "info"
+
+            # Hostname
+            - name: HOSTNAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+
+            # Cluster name
+            - name: CLUSTER_NAME
+              value: "novafsm-production"
+
+          ports:
+            - name: http
+              containerPort: 2020
+              protocol: TCP
+
+          # Liveness probe
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+
+          # Readiness probe
+          readinessProbe:
+            httpGet:
+              path: /api/v1/health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+
+          # Resources
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+
+          volumeMounts:
+            # Fluent Bit configuration
+            - name: fluent-bit-config
+              mountPath: /fluent-bit/etc/
+
+            # Container logs from host
+            - name: varlog
+              mountPath: /var/log
+              readOnly: true
+
+            # Docker container logs
+            - name: varlibdockercontainers
+              mountPath: /var/lib/docker/containers
+              readOnly: true
+
+            # Persistent state (for file tracking)
+            - name: fluent-bit-state
+              mountPath: /var/fluent-bit/state
+
+            # Systemd journal (if available)
+            - name: systemd
+              mountPath: /run/log/journal
+              readOnly: true
+
+            # Machine ID for systemd
+            - name: etcmachineid
+              mountPath: /etc/machine-id
+              readOnly: true
+
+      terminationGracePeriodSeconds: 30
+
+      volumes:
+        # Fluent Bit configuration from ConfigMap
+        - name: fluent-bit-config
+          configMap:
+            name: fluent-bit-config
+
+        # Host paths for log collection
+        - name: varlog
+          hostPath:
+            path: /var/log
+            type: ""
+
+        - name: varlibdockercontainers
+          hostPath:
+            path: /var/lib/docker/containers
+            type: ""
+
+        - name: systemd
+          hostPath:
+            path: /run/log/journal
+            type: ""
+
+        - name: etcmachineid
+          hostPath:
+            path: /etc/machine-id
+            type: File
+
+        # Persistent state directory (emptyDir for simplicity)
+        - name: fluent-bit-state
+          emptyDir: {}

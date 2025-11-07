@@ -1,0 +1,21 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "FluentBitCloudWatchLogsAccess",
+      "Effect": "Allow",
+      "Action": [
+        "logs:CreateLogGroup",
+        "logs:CreateLogStream",
+        "logs:PutLogEvents",
+        "logs:DescribeLogGroups",
+        "logs:DescribeLogStreams",
+        "logs:PutRetentionPolicy"
+      ],
+      "Resource": [
+        "arn:aws:logs:*:*:log-group:/aws/eks/novafsm-production/*",
+        "arn:aws:logs:*:*:log-group:/aws/eks/novafsm-production/*:log-stream:*"
+      ]
+    }
+  ]
+}
