@@ -7,6 +7,7 @@ import { Header } from '@/components/layout/header';
 import { Breadcrumbs } from '@/components/layout/breadcrumbs';
 import { useAuthStore } from '@/stores/auth-store';
 import { cn } from '@/lib/utils';
+import { ErrorBoundary } from '@/components/error-boundary';
 
 export default function DashboardLayout({
   children,
@@ -34,28 +35,32 @@ export default function DashboardLayout({
   };
 
   return (
-    <div className="relative min-h-screen bg-background">
-      {/* Sidebar */}
-      <Sidebar collapsed={sidebarCollapsed} onToggleCollapse={handleToggleCollapse} />
+    <ErrorBoundary>
+      <div className="relative min-h-screen bg-background">
+        {/* Sidebar */}
+        <Sidebar collapsed={sidebarCollapsed} onToggleCollapse={handleToggleCollapse} />
 
-      {/* Main content area */}
-      <div
-        className={cn(
-          'transition-all duration-300',
-          sidebarCollapsed ? 'ml-16' : 'ml-60'
-        )}
-      >
-        {/* Header */}
-        <Header collapsed={sidebarCollapsed} />
+        {/* Main content area */}
+        <div
+          className={cn(
+            'transition-all duration-300',
+            sidebarCollapsed ? 'ml-16' : 'ml-60'
+          )}
+        >
+          {/* Header */}
+          <Header collapsed={sidebarCollapsed} />
 
-        {/* Breadcrumbs */}
-        <div className="border-b bg-background px-6 py-3">
-          <Breadcrumbs />
+          {/* Breadcrumbs */}
+          <div className="border-b bg-background px-6 py-3">
+            <Breadcrumbs />
+          </div>
+
+          {/* Page content */}
+          <main className="p-6">
+            <ErrorBoundary>{children}</ErrorBoundary>
+          </main>
         </div>
-
-        {/* Page content */}
-        <main className="p-6">{children}</main>
       </div>
-    </div>
+    </ErrorBoundary>
   );
 }
