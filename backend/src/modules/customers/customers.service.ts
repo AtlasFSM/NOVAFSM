@@ -319,4 +319,93 @@ export class CustomersService {
       },
     };
   }
+
+  /**
+   * Find all soft-deleted customers
+   */
+  async findDeleted(tenantId: string, query: QueryCustomersDto) {
+    const { page = 1, limit = 20, search } = query;
+    const skip = (page - 1) * limit;
+
+    // Build where clause for deleted records
+    const where: any = {
+      tenantId,
+      deletedAt: { not: null }, // Only show deleted records
+    };
+
+    if (search) {
+      where.OR = [
+        { name: { contains: search, mode: 'insensitive' } },
+        { email: { contains: search, mode: 'insensitive' } },
+        { phone: { contains: search, mode: 'insensitive' } },
+      ];
+    }
+
+    // Execute query with pagination
+    const [customers, total] = await Promise.all([
+      this.prisma.customer.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { deletedAt: 'desc' },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          phone: true,
+          address: true,
+          city: true,
+          status: true,
+          deletedAt: true,
+          createdAt: true,
+        },
+      }),
+      this.prisma.customer.count({ where }),
+    ]);
+
+    return {
+      success: true,
+      data: customers,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
+
+  /**
+   * Restore a soft-deleted customer
+   */
+  async restore(tenantId: string, id: string) {
+    // Check if customer exists and is deleted
+    const customer = await this.prisma.customer.findFirst({
+      where: {
+        id,
+        tenantId,
+        deletedAt: { not: null },
+      },
+    });
+
+    if (!customer) {
+      throw new NotFoundException(
+        `Deleted customer with ID ${id} not found`,
+      );
+    }
+
+    // Restore the customer by setting deletedAt to null
+    const restored = await this.prisma.customer.update({
+      where: { id },
+      data: {
+        deletedAt: null,
+      },
+    });
+
+    return {
+      success: true,
+      data: restored,
+      message: 'Customer restored successfully',
+    };
+  }
 }

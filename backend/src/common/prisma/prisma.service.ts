@@ -1,9 +1,10 @@
 import { Injectable, OnModuleInit, OnModuleDestroy, Logger } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
+import { softDeleteMiddleware } from './soft-delete.middleware';
 
 /**
- * Prisma Service with tenant isolation middleware
- * Automatically injects tenantId filter on all queries
+ * Prisma Service with tenant isolation middleware and soft delete support
+ * Automatically injects tenantId filter on all queries and handles soft deletes
  */
 @Injectable()
 export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
@@ -56,6 +57,9 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
   }
 
   private setupMiddleware() {
+    // Apply soft delete middleware first
+    this.$use(softDeleteMiddleware);
+
     // Middleware to inject tenantId filter on all queries
     this.$use(async (params, next) => {
       // Models that don't require tenant filtering

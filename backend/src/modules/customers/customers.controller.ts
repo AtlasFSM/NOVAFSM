@@ -4,6 +4,7 @@ import {
   Post,
   Put,
   Delete,
+  Patch,
   Body,
   Param,
   Query,
@@ -123,16 +124,41 @@ export class CustomersController {
 
   @Delete(':id')
   @Roles('ADMIN', 'DISPATCHER')
-  @ApiOperation({ summary: 'Delete a customer' })
+  @ApiOperation({ summary: 'Soft delete a customer' })
   @ApiParam({ name: 'id', description: 'Customer UUID' })
-  @ApiResponse({ status: 200, description: 'Customer deleted successfully' })
+  @ApiResponse({ status: 200, description: 'Customer deleted successfully (soft delete)' })
   @ApiResponse({ status: 404, description: 'Customer not found' })
-  @ApiResponse({ status: 400, description: 'Cannot delete customer with related records' })
   @ApiResponse({ status: 403, description: 'Forbidden' })
   async delete(
     @CurrentUser() user: CurrentUserPayload,
     @Param('id') id: string,
   ) {
     return this.customersService.delete(user.tenantId, id);
+  }
+
+  @Get('deleted/list')
+  @Roles('ADMIN')
+  @ApiOperation({ summary: 'Get list of soft-deleted customers' })
+  @ApiResponse({ status: 200, description: 'Deleted customers retrieved successfully' })
+  @ApiResponse({ status: 403, description: 'Forbidden' })
+  async listDeleted(
+    @CurrentUser() user: CurrentUserPayload,
+    @Query() query: QueryCustomersDto,
+  ) {
+    return this.customersService.findDeleted(user.tenantId, query);
+  }
+
+  @Patch(':id/restore')
+  @Roles('ADMIN')
+  @ApiOperation({ summary: 'Restore a soft-deleted customer' })
+  @ApiParam({ name: 'id', description: 'Customer UUID' })
+  @ApiResponse({ status: 200, description: 'Customer restored successfully' })
+  @ApiResponse({ status: 404, description: 'Deleted customer not found' })
+  @ApiResponse({ status: 403, description: 'Forbidden' })
+  async restore(
+    @CurrentUser() user: CurrentUserPayload,
+    @Param('id') id: string,
+  ) {
+    return this.customersService.restore(user.tenantId, id);
   }
 }
