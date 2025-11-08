@@ -338,7 +338,8 @@ export class InvoicesService {
    * Send invoice to customer via email (DRAFT → SENT)
    */
   async send(id: string) {
-    const invoice = await this.findOne(id);
+    const invoiceResponse = await this.findOne(id);
+    const invoice = invoiceResponse.data;
 
     if (invoice.status !== 'DRAFT') {
       throw new BadRequestException('Only DRAFT invoices can be sent');

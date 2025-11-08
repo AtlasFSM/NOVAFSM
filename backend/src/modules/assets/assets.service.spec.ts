@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AssetsService } from './assets.service';
-import { PrismaService } from '../prisma/prisma.service';
+import { PrismaService } from '../../common/prisma/prisma.service';
 import { AssetCategory, AssetStatus } from './dto/create-asset.dto';
 import { NotFoundException, BadRequestException } from '@nestjs/common';
 
