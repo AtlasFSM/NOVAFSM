@@ -15,7 +15,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Save, User, Building2, Bell, Shield } from 'lucide-react';
+import { Save, User, Building2, Bell, Shield, Globe } from 'lucide-react';
+import { LanguageSwitcher } from '@/components/language-switcher';
 
 export default function SettingsPage() {
   const queryClient = useQueryClient();
@@ -127,6 +128,10 @@ export default function SettingsPage() {
           <TabsTrigger value="organization">
             <Building2 className="h-4 w-4 mr-2" />
             Organization
+          </TabsTrigger>
+          <TabsTrigger value="preferences">
+            <Globe className="h-4 w-4 mr-2" />
+            Preferences
           </TabsTrigger>
           <TabsTrigger value="notifications">
             <Bell className="h-4 w-4 mr-2" />
@@ -247,6 +252,19 @@ export default function SettingsPage() {
               </CardContent>
             </Card>
           </form>
+        </TabsContent>
+
+        {/* Preferences Settings */}
+        <TabsContent value="preferences" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Language Preference</CardTitle>
+              <CardDescription>Choose your preferred language for the interface</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <LanguageSwitcher />
+            </CardContent>
+          </Card>
         </TabsContent>
 
         {/* Notifications Settings */}

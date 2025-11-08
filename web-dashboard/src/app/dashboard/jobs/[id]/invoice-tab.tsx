@@ -32,6 +32,7 @@ import {
 import { formatCurrency } from '@/lib/utils';
 import { toast } from 'sonner';
 import Link from 'next/link';
+import { useTranslation } from '@/lib/i18n';
 
 interface InvoiceLine {
   id?: string;
@@ -67,6 +68,7 @@ const PROVINCES = [
 ];
 
 export default function InvoiceTab({ job, invoice, customerId }: InvoiceTabProps) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [lines, setLines] = useState<InvoiceLine[]>(invoice?.lines || []);
   const [selectedProvince, setSelectedProvince] = useState('QC');
@@ -117,12 +119,12 @@ export default function InvoiceTab({ job, invoice, customerId }: InvoiceTabProps
       }
     },
     onSuccess: () => {
-      toast.success(invoice ? 'Invoice updated successfully' : 'Invoice created successfully');
+      toast.success(invoice ? t('invoice.invoiceUpdated') : t('invoice.invoiceCreated'));
       queryClient.invalidateQueries({ queryKey: ['job', job.id] });
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Failed to save invoice');
+      toast.error(error.response?.data?.message || t('invoice.failedToSave'));
     },
   });
 
@@ -134,7 +136,7 @@ export default function InvoiceTab({ job, invoice, customerId }: InvoiceTabProps
       quantity: 1,
       unit: item.unit,
       unitPrice: parseFloat(item.defaultRate),
-      category: item.category || 'Autre',
+      category: item.category || t('common.other'),
       amount: parseFloat(item.defaultRate),
     };
     setLines([...lines, newLine]);
@@ -143,7 +145,7 @@ export default function InvoiceTab({ job, invoice, customerId }: InvoiceTabProps
   const addTitle = () => {
     const newLine: InvoiceLine = {
       type: 'title',
-      description: 'Nouveau titre',
+      description: t('invoice.newTitle'),
       quantity: 0,
       unit: '',
       unitPrice: 0,
@@ -155,7 +157,7 @@ export default function InvoiceTab({ job, invoice, customerId }: InvoiceTabProps
   const addPageBreak = () => {
     const newLine: InvoiceLine = {
       type: 'pagebreak',
-      description: '--- Saut de page ---',
+      description: t('invoice.pageBreak'),
       quantity: 0,
       unit: '',
       unitPrice: 0,
@@ -173,7 +175,7 @@ export default function InvoiceTab({ job, invoice, customerId }: InvoiceTabProps
       quantity: item.quantity,
       unit: item.unit,
       unitPrice: item.unitPrice,
-      category: item.category || 'Autre',
+      category: item.category || t('common.other'),
       amount: item.quantity * item.unitPrice,
     }));
     setLines([...lines, ...templateLines]);
@@ -211,24 +213,24 @@ export default function InvoiceTab({ job, invoice, customerId }: InvoiceTabProps
   };
 
   const clearAll = () => {
-    if (confirm('Êtes-vous sûr de vouloir effacer tout le contenu?')) {
+    if (confirm(t('invoice.confirmClearAll'))) {
       setLines([]);
     }
   };
 
   const clearItems = () => {
-    if (confirm('Êtes-vous sûr de vouloir effacer les items?')) {
+    if (confirm(t('invoice.confirmClearItems'))) {
       setLines(lines.filter(line => line.type !== 'item'));
     }
   };
 
   const saveTemplate = () => {
     if (!templateName.trim()) {
-      toast.error('Veuillez entrer un nom de modèle');
+      toast.error(t('invoice.enterTemplateName'));
       return;
     }
     // TODO: Implement save template API
-    toast.success(`Modèle "${templateName}" sauvegardé`);
+    toast.success(t('invoice.templateSaved', { name: templateName }));
     setTemplateName('');
   };
 
@@ -243,7 +245,7 @@ export default function InvoiceTab({ job, invoice, customerId }: InvoiceTabProps
     lines
       .filter(line => line.type === 'item')
       .forEach(line => {
-        const category = line.category || 'Autre';
+        const category = line.category || t('common.other');
         summary[category] = (summary[category] || 0) + line.amount;
       });
     return summary;
@@ -269,7 +271,7 @@ export default function InvoiceTab({ job, invoice, customerId }: InvoiceTabProps
 
   const handleSave = () => {
     if (lines.filter(l => l.type === 'item').length === 0) {
-      toast.error('Veuillez ajouter au moins un item');
+      toast.error(t('invoice.addAtLeastOneItem'));
       return;
     }
 
@@ -310,7 +312,7 @@ export default function InvoiceTab({ job, invoice, customerId }: InvoiceTabProps
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle>Facture</CardTitle>
+              <CardTitle>{t('invoice.title')}</CardTitle>
               <div className="flex items-center gap-2 mt-2">
                 <Badge variant="outline">{invoice.number}</Badge>
                 <Badge>{invoice.status}</Badge>
@@ -321,7 +323,7 @@ export default function InvoiceTab({ job, invoice, customerId }: InvoiceTabProps
               <Button asChild variant="outline" size="sm" className="mt-2">
                 <Link href={`/dashboard/invoices/${invoice.id}`}>
                   <FileText className="h-4 w-4 mr-2" />
-                  Voir détails
+                  {t('common.viewDetails')}
                 </Link>
               </Button>
             </div>
@@ -336,8 +338,8 @@ export default function InvoiceTab({ job, invoice, customerId }: InvoiceTabProps
       <Card>
         <CardContent className="py-12 text-center text-gray-500">
           <FileText className="h-12 w-12 mx-auto mb-3 text-gray-300" />
-          <p>Les factures ne peuvent être créées que pour les jobs complétés</p>
-          <p className="text-sm mt-1">Statut actuel: {job.status}</p>
+          <p>{t('invoice.invoiceForCompleted')}</p>
+          <p className="text-sm mt-1">{t('invoice.currentStatus')} {job.status}</p>
         </CardContent>
       </Card>
     );
@@ -347,7 +349,7 @@ export default function InvoiceTab({ job, invoice, customerId }: InvoiceTabProps
     <div className="space-y-4">
       <Card>
         <CardHeader>
-          <CardTitle>Items</CardTitle>
+          <CardTitle>{t('invoice.items')}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-0 p-0">
           {lines.map((line, index) => (
@@ -396,7 +398,7 @@ export default function InvoiceTab({ job, invoice, customerId }: InvoiceTabProps
                         </div>
 
                         <div className="flex items-center gap-2">
-                          <span className="text-sm text-gray-600">Qté</span>
+                          <span className="text-sm text-gray-600">{t('common.quantity')}</span>
                           <Input
                             type="number"
                             value={line.quantity}
@@ -405,7 +407,7 @@ export default function InvoiceTab({ job, invoice, customerId }: InvoiceTabProps
                             min="0"
                             step="0.01"
                           />
-                          <span className="text-sm text-gray-600">PU</span>
+                          <span className="text-sm text-gray-600">{t('common.unitPrice')}</span>
                           <Input
                             type="number"
                             value={line.unitPrice}
@@ -419,10 +421,10 @@ export default function InvoiceTab({ job, invoice, customerId }: InvoiceTabProps
 
                       <div className="flex items-center justify-between mt-2">
                         <span className="text-sm text-gray-500">
-                          {line.category && `Catégorie: ${line.category}`}
+                          {line.category && `${t('common.category')}: ${line.category}`}
                         </span>
                         <div className="flex items-center gap-2">
-                          <span className="font-semibold">Total</span>
+                          <span className="font-semibold">{t('common.total')}</span>
                           <span className="font-bold">{formatCurrency(line.amount, 'CAD')}</span>
                           <Button
                             variant="ghost"
@@ -454,7 +456,7 @@ export default function InvoiceTab({ job, invoice, customerId }: InvoiceTabProps
                       value={line.description}
                       onChange={(e) => updateLine(index, 'description', e.target.value)}
                       className="font-bold text-lg"
-                      placeholder="Titre de section"
+                      placeholder={t('invoice.sectionTitle')}
                     />
                     <Button
                       variant="ghost"
@@ -470,7 +472,7 @@ export default function InvoiceTab({ job, invoice, customerId }: InvoiceTabProps
 
               {line.type === 'pagebreak' && (
                 <div className="p-4 flex items-center justify-between">
-                  <span className="text-sm text-blue-600 font-medium">--- Saut de page ---</span>
+                  <span className="text-sm text-blue-600 font-medium">{t('invoice.pageBreak')}</span>
                   <Button
                     variant="ghost"
                     size="sm"
@@ -486,8 +488,8 @@ export default function InvoiceTab({ job, invoice, customerId }: InvoiceTabProps
 
           {lines.length === 0 && (
             <div className="p-12 text-center text-gray-400">
-              <p>Aucun item ajouté</p>
-              <p className="text-sm mt-1">Utilisez les options ci-dessous pour ajouter des items</p>
+              <p>{t('invoice.noItems')}</p>
+              <p className="text-sm mt-1">{t('invoice.useOptionsBelow')}</p>
             </div>
           )}
         </CardContent>
@@ -497,19 +499,19 @@ export default function InvoiceTab({ job, invoice, customerId }: InvoiceTabProps
       <Card>
         <CardContent className="p-4 space-y-4">
           <div>
-            <p className="text-sm font-medium mb-2">Ajouter :</p>
+            <p className="text-sm font-medium mb-2">{t('invoice.addLabel')}</p>
             <div className="flex flex-wrap gap-2">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" size="sm">
                     <Plus className="h-4 w-4 mr-2" />
-                    un item
+                    {t('invoice.addItem')}
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="w-80 max-h-96 overflow-y-auto">
                   {priceItems.length === 0 ? (
                     <div className="p-4 text-center text-gray-500 text-sm">
-                      Aucun item dans la liste de prix
+                      {t('invoice.noPriceItems')}
                     </div>
                   ) : (
                     priceItems.map((item: any) => (
@@ -535,27 +537,27 @@ export default function InvoiceTab({ job, invoice, customerId }: InvoiceTabProps
 
               <Button variant="outline" size="sm" onClick={addTitle}>
                 <Plus className="h-4 w-4 mr-2" />
-                un titre
+                {t('invoice.addTitle')}
               </Button>
 
               <Button variant="outline" size="sm" onClick={addPageBreak}>
                 <Plus className="h-4 w-4 mr-2" />
-                un saut de page
+                {t('invoice.addPageBreak')}
               </Button>
             </div>
           </div>
 
           <div>
-            <p className="text-sm font-medium mb-2">Ajouter un modèle :</p>
+            <p className="text-sm font-medium mb-2">{t('invoice.addTemplate')}</p>
             <div className="flex gap-2">
               <Select value={selectedTemplate} onValueChange={setSelectedTemplate}>
                 <SelectTrigger className="flex-1">
-                  <SelectValue placeholder="Sélectionner un modèle" />
+                  <SelectValue placeholder={t('invoice.selectTemplate')} />
                 </SelectTrigger>
                 <SelectContent>
                   {templates.length === 0 ? (
                     <div className="p-4 text-center text-gray-500 text-sm">
-                      Aucun modèle sauvegardé
+                      {t('invoice.noTemplates')}
                     </div>
                   ) : (
                     templates.map((template: any) => (
@@ -575,7 +577,7 @@ export default function InvoiceTab({ job, invoice, customerId }: InvoiceTabProps
                 }}
               >
                 <Plus className="h-4 w-4 mr-2" />
-                Ajouter
+                {t('common.add')}
               </Button>
             </div>
           </div>
@@ -585,15 +587,15 @@ export default function InvoiceTab({ job, invoice, customerId }: InvoiceTabProps
       {/* Delete Section */}
       <Card>
         <CardContent className="p-4">
-          <p className="text-sm font-medium mb-2">Effacer :</p>
+          <p className="text-sm font-medium mb-2">{t('invoice.deleteLabel')}</p>
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={clearAll}>
               <Trash2 className="h-4 w-4 mr-2" />
-              effacer tout le contenu
+              {t('invoice.clearAll')}
             </Button>
             <Button variant="outline" size="sm" onClick={clearItems}>
               <Trash2 className="h-4 w-4 mr-2" />
-              effacer les items
+              {t('invoice.clearItems')}
             </Button>
           </div>
         </CardContent>
@@ -602,16 +604,16 @@ export default function InvoiceTab({ job, invoice, customerId }: InvoiceTabProps
       {/* Save Template */}
       <Card>
         <CardContent className="p-4">
-          <p className="text-sm font-medium mb-2">Sauvegarder un modèle :</p>
+          <p className="text-sm font-medium mb-2">{t('invoice.saveTemplate')}</p>
           <div className="flex gap-2">
             <Input
-              placeholder="Nom du modèle"
+              placeholder={t('invoice.templateName')}
               value={templateName}
               onChange={(e) => setTemplateName(e.target.value)}
               className="flex-1"
             />
             <Button onClick={saveTemplate} disabled={!templateName.trim() || lines.length === 0}>
-              Sauvegarder
+              {t('common.save')}
             </Button>
           </div>
         </CardContent>
@@ -621,11 +623,11 @@ export default function InvoiceTab({ job, invoice, customerId }: InvoiceTabProps
       {Object.keys(categorySummary).length > 0 && (
         <Card>
           <CardContent className="p-4">
-            <p className="text-sm font-medium mb-2">Sommaire par catégorie</p>
+            <p className="text-sm font-medium mb-2">{t('invoice.categorySummary')}</p>
             <div className="space-y-1">
               {Object.entries(categorySummary).map(([category, amount]) => (
                 <div key={category} className="flex justify-between text-sm">
-                  <span className="text-gray-600">{category} :</span>
+                  <span className="text-gray-600">{category}:</span>
                   <span className="font-medium">{formatCurrency(amount, 'CAD')}</span>
                 </div>
               ))}
@@ -638,12 +640,12 @@ export default function InvoiceTab({ job, invoice, customerId }: InvoiceTabProps
       <Card>
         <CardContent className="p-4 space-y-3">
           <div className="flex justify-between">
-            <span className="font-medium">Total avant taxes :</span>
+            <span className="font-medium">{t('invoice.totalBeforeTax')}</span>
             <span className="font-bold text-lg">{formatCurrency(calculateSubtotal(), 'CAD')}</span>
           </div>
 
           <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-600">Taxes de la province :</span>
+            <span className="text-sm text-gray-600">{t('invoice.provinceTaxes')}</span>
             <Select value={selectedProvince} onValueChange={setSelectedProvince}>
               <SelectTrigger className="w-48">
                 <SelectValue />
@@ -651,7 +653,7 @@ export default function InvoiceTab({ job, invoice, customerId }: InvoiceTabProps
               <SelectContent>
                 {PROVINCES.map((prov) => (
                   <SelectItem key={prov.value} value={prov.value}>
-                    {prov.label}
+                    {t(`provinces.${prov.value}`)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -690,7 +692,7 @@ export default function InvoiceTab({ job, invoice, customerId }: InvoiceTabProps
               disabled={createInvoiceMutation.isPending || lines.filter(l => l.type === 'item').length === 0}
               className="w-full"
             >
-              {createInvoiceMutation.isPending ? 'Sauvegarde...' : (invoice ? 'Mettre à jour la facture' : 'Créer la facture')}
+              {createInvoiceMutation.isPending ? t('invoice.saving') : (invoice ? t('invoice.updateInvoice') : t('invoice.createInvoice'))}
             </Button>
           </div>
         </CardContent>
