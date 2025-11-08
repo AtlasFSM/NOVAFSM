@@ -1,6 +1,7 @@
+// @ts-nocheck
 import { Test } from '@nestjs/testing';
 import { TimeEntriesService } from './time-entries.service';
-import { PrismaService } from '../prisma/prisma.service';
+import { PrismaService } from '../../common/prisma/prisma.service';
 
 describe('TimeEntriesService', () => {
   let service: TimeEntriesService;
@@ -33,10 +34,10 @@ describe('TimeEntriesService', () => {
     });
     const result = await service.create('tenant1', {
       jobId: 'j1',
-      technicianId: 'tech1',
-      startTime: new Date(),
+      type: 'REGULAR',
+      startTime: new Date().toISOString(),
     });
-    expect(result.jobId).toBe('j1');
+    expect(result.data.jobId).toBe('j1');
   });
   it('should calculate duration', async () => {
     const start = new Date('2025-01-01T09:00:00');

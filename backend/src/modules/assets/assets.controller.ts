@@ -15,9 +15,9 @@ import { AssetsService } from './assets.service';
 import { CreateAssetDto } from './dto/create-asset.dto';
 import { UpdateAssetDto } from './dto/update-asset.dto';
 import { AssignAssetDto, UnassignAssetDto, MaintenanceLogDto } from './dto/assign-asset.dto';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { RolesGuard } from '../auth/guards/roles.guard';
-import { Roles } from '../auth/decorators/roles.decorator';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { RolesGuard } from '../../common/guards/roles.guard';
+import { Roles } from '../../common/decorators/roles.decorator';
 
 @ApiTags('Assets')
 @ApiBearerAuth()
@@ -32,7 +32,7 @@ export class AssetsController {
   @ApiResponse({ status: 201, description: 'Asset created successfully' })
   @ApiResponse({ status: 400, description: 'Bad request' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  async create(@Request() req, @Body() dto: CreateAssetDto) {
+  async create(@Request() req: any, @Body() dto: CreateAssetDto) {
     return this.assetsService.create(req.user.tenantId, dto);
   }
 
@@ -44,7 +44,7 @@ export class AssetsController {
   @ApiQuery({ name: 'assignedToType', required: false })
   @ApiQuery({ name: 'search', required: false })
   @ApiResponse({ status: 200, description: 'Assets retrieved successfully' })
-  async findAll(@Request() req, @Query() query: any) {
+  async findAll(@Request() req: any, @Query() query: any) {
     return this.assetsService.findAll(req.user.tenantId, query);
   }
 
@@ -53,7 +53,7 @@ export class AssetsController {
   @ApiOperation({ summary: 'Get available assets' })
   @ApiQuery({ name: 'category', required: false })
   @ApiResponse({ status: 200, description: 'Available assets retrieved' })
-  async getAvailableAssets(@Request() req, @Query('category') category?: string) {
+  async getAvailableAssets(@Request() req: any, @Query('category') category?: string) {
     return this.assetsService.getAvailableAssets(req.user.tenantId, category);
   }
 
@@ -62,7 +62,7 @@ export class AssetsController {
   @ApiOperation({ summary: 'Get asset by ID' })
   @ApiResponse({ status: 200, description: 'Asset retrieved successfully' })
   @ApiResponse({ status: 404, description: 'Asset not found' })
-  async findOne(@Request() req, @Param('id') id: string) {
+  async findOne(@Request() req: any, @Param('id') id: string) {
     return this.assetsService.findOne(req.user.tenantId, id);
   }
 
@@ -71,7 +71,7 @@ export class AssetsController {
   @ApiOperation({ summary: 'Update asset' })
   @ApiResponse({ status: 200, description: 'Asset updated successfully' })
   @ApiResponse({ status: 404, description: 'Asset not found' })
-  async update(@Request() req, @Param('id') id: string, @Body() dto: UpdateAssetDto) {
+  async update(@Request() req: any, @Param('id') id: string, @Body() dto: UpdateAssetDto) {
     return this.assetsService.update(req.user.tenantId, id, dto);
   }
 
@@ -81,7 +81,7 @@ export class AssetsController {
   @ApiResponse({ status: 200, description: 'Asset deleted successfully' })
   @ApiResponse({ status: 404, description: 'Asset not found' })
   @ApiResponse({ status: 400, description: 'Cannot delete asset in use' })
-  async remove(@Request() req, @Param('id') id: string) {
+  async remove(@Request() req: any, @Param('id') id: string) {
     return this.assetsService.remove(req.user.tenantId, id);
   }
 
@@ -91,7 +91,7 @@ export class AssetsController {
   @ApiResponse({ status: 200, description: 'Asset assigned successfully' })
   @ApiResponse({ status: 404, description: 'Asset not found' })
   @ApiResponse({ status: 400, description: 'Cannot assign asset' })
-  async assign(@Request() req, @Param('id') id: string, @Body() dto: AssignAssetDto) {
+  async assign(@Request() req: any, @Param('id') id: string, @Body() dto: AssignAssetDto) {
     return this.assetsService.assign(req.user.tenantId, id, dto);
   }
 
@@ -100,7 +100,7 @@ export class AssetsController {
   @ApiOperation({ summary: 'Unassign asset and mark as available' })
   @ApiResponse({ status: 200, description: 'Asset unassigned successfully' })
   @ApiResponse({ status: 404, description: 'Asset not found' })
-  async unassign(@Request() req, @Param('id') id: string, @Body() dto?: UnassignAssetDto) {
+  async unassign(@Request() req: any, @Param('id') id: string, @Body() dto?: UnassignAssetDto) {
     return this.assetsService.unassign(req.user.tenantId, id, dto);
   }
 
@@ -109,7 +109,7 @@ export class AssetsController {
   @ApiOperation({ summary: 'Add maintenance log entry' })
   @ApiResponse({ status: 200, description: 'Maintenance log added successfully' })
   @ApiResponse({ status: 404, description: 'Asset not found' })
-  async addMaintenanceLog(@Request() req, @Param('id') id: string, @Body() dto: MaintenanceLogDto) {
+  async addMaintenanceLog(@Request() req: any, @Param('id') id: string, @Body() dto: MaintenanceLogDto) {
     return this.assetsService.addMaintenanceLog(req.user.tenantId, id, dto);
   }
 }

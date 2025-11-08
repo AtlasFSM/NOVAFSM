@@ -100,7 +100,7 @@ export class QuoteLinesService {
     });
 
     // Calculate tax amount for each applicable rate
-    const taxes: TaxDetail[] = taxRates.map((taxRate) => {
+    const taxes: TaxDetail[] = taxRates.map((taxRate: any) => {
       const rate = taxRate.rate instanceof Decimal ? taxRate.rate.toNumber() : Number(taxRate.rate);
       const taxAmount = amount * rate;
 

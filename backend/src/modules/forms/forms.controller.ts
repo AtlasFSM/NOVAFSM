@@ -3,9 +3,9 @@ import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagg
 import { FormsService } from './forms.service';
 import { CreateFormTemplateDto } from './dto/create-form-template.dto';
 import { SubmitFormResponseDto, AssignFormDto } from './dto/submit-form-response.dto';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { RolesGuard } from '../auth/guards/roles.guard';
-import { Roles } from '../auth/decorators/roles.decorator';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { RolesGuard } from '../../common/guards/roles.guard';
+import { Roles } from '../../common/decorators/roles.decorator';
 
 @ApiTags('Forms')
 @ApiBearerAuth()
@@ -19,21 +19,21 @@ export class FormsController {
   @Roles('ADMIN', 'DISPATCHER')
   @ApiOperation({ summary: 'Create form template' })
   @ApiResponse({ status: 201, description: 'Template created' })
-  async createTemplate(@Request() req, @Body() dto: CreateFormTemplateDto) {
+  async createTemplate(@Request() req: any, @Body() dto: CreateFormTemplateDto) {
     return this.formsService.createTemplate(req.user.tenantId, dto);
   }
 
   @Get('templates')
   @Roles('ADMIN', 'DISPATCHER', 'TECHNICIAN')
   @ApiOperation({ summary: 'Get all templates' })
-  async getTemplates(@Request() req, @Query() query: any) {
+  async getTemplates(@Request() req: any, @Query() query: any) {
     return this.formsService.getTemplates(req.user.tenantId, query);
   }
 
   @Get('templates/:id')
   @Roles('ADMIN', 'DISPATCHER', 'TECHNICIAN')
   @ApiOperation({ summary: 'Get template by ID' })
-  async getTemplate(@Request() req, @Param('id') id: string) {
+  async getTemplate(@Request() req: any, @Param('id') id: string) {
     return this.formsService.getTemplate(req.user.tenantId, id);
   }
 
@@ -41,7 +41,7 @@ export class FormsController {
   @Roles('ADMIN', 'DISPATCHER')
   @ApiOperation({ summary: 'Update template' })
   async updateTemplate(
-    @Request() req,
+    @Request() req: any,
     @Param('id') id: string,
     @Body() dto: Partial<CreateFormTemplateDto>,
   ) {
@@ -51,7 +51,7 @@ export class FormsController {
   @Post('templates/:id/publish')
   @Roles('ADMIN', 'DISPATCHER')
   @ApiOperation({ summary: 'Publish template' })
-  async publishTemplate(@Request() req, @Param('id') id: string) {
+  async publishTemplate(@Request() req: any, @Param('id') id: string) {
     return this.formsService.publishTemplate(req.user.tenantId, id);
   }
 
@@ -59,14 +59,14 @@ export class FormsController {
   @Post('assignments')
   @Roles('ADMIN', 'DISPATCHER')
   @ApiOperation({ summary: 'Assign form to job/site/asset' })
-  async assignForm(@Request() req, @Body() dto: AssignFormDto) {
+  async assignForm(@Request() req: any, @Body() dto: AssignFormDto) {
     return this.formsService.assignForm(req.user.tenantId, dto);
   }
 
   @Get('assignments')
   @Roles('ADMIN', 'DISPATCHER', 'TECHNICIAN')
   @ApiOperation({ summary: 'Get assignments' })
-  async getAssignments(@Request() req, @Query() query: any) {
+  async getAssignments(@Request() req: any, @Query() query: any) {
     return this.formsService.getAssignments(req.user.tenantId, query);
   }
 
@@ -74,21 +74,21 @@ export class FormsController {
   @Post('responses')
   @Roles('ADMIN', 'DISPATCHER', 'TECHNICIAN')
   @ApiOperation({ summary: 'Submit form response' })
-  async submitResponse(@Request() req, @Body() dto: SubmitFormResponseDto) {
+  async submitResponse(@Request() req: any, @Body() dto: SubmitFormResponseDto) {
     return this.formsService.submitResponse(req.user.tenantId, req.user.userId, dto);
   }
 
   @Get('responses')
   @Roles('ADMIN', 'DISPATCHER')
   @ApiOperation({ summary: 'Get responses' })
-  async getResponses(@Request() req, @Query() query: any) {
+  async getResponses(@Request() req: any, @Query() query: any) {
     return this.formsService.getResponses(req.user.tenantId, query);
   }
 
   @Get('responses/:id')
   @Roles('ADMIN', 'DISPATCHER')
   @ApiOperation({ summary: 'Get response by ID' })
-  async getResponse(@Request() req, @Param('id') id: string) {
+  async getResponse(@Request() req: any, @Param('id') id: string) {
     return this.formsService.getResponse(req.user.tenantId, id);
   }
 }

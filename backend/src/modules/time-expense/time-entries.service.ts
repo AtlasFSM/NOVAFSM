@@ -298,7 +298,7 @@ export class TimeEntriesService {
     });
 
     const totalByType = entries.reduce(
-      (acc, entry) => {
+      (acc: Record<string, number>, entry: any) => {
         if (entry.duration) {
           acc[entry.type] = (acc[entry.type] || 0) + entry.duration;
         }
@@ -307,7 +307,7 @@ export class TimeEntriesService {
       {} as Record<string, number>,
     );
 
-    const totalMinutes = Object.values(totalByType).reduce((sum, val) => sum + val, 0);
+    const totalMinutes = (Object.values(totalByType) as number[]).reduce((sum: number, val: number) => sum + val, 0);
 
     return {
       success: true,

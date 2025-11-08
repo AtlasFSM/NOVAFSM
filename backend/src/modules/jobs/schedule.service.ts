@@ -106,7 +106,7 @@ export class ScheduleService {
     return {
       technicianId: technician.id,
       technicianName,
-      jobs: jobs.map((job) => ({
+      jobs: jobs.map((job: any) => ({
         id: job.id,
         number: job.number,
         title: job.title,
@@ -195,8 +195,8 @@ export class ScheduleService {
     });
 
     return conflictingJobs
-      .filter((job) => job.scheduledStart && job.scheduledEnd)
-      .map((job) => ({
+      .filter((job: any) => job.scheduledStart && job.scheduledEnd)
+      .map((job: any) => ({
         jobId: job.id,
         jobNumber: job.number,
         scheduledStart: job.scheduledStart!,
@@ -268,7 +268,7 @@ export class ScheduleService {
     });
 
     const schedules = await Promise.all(
-      technicians.map((tech) => this.getSchedule(tech.id, from, to)),
+      technicians.map((tech: any) => this.getSchedule(tech.id, from, to)),
     );
 
     return schedules;

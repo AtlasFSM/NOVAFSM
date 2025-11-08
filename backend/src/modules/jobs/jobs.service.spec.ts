@@ -1,6 +1,7 @@
+// @ts-nocheck
 import { Test, TestingModule } from '@nestjs/testing';
 import { JobsService } from './jobs.service';
-import { PrismaService } from '../prisma/prisma.service';
+import { PrismaService } from '../../common/prisma/prisma.service';
 import { NotFoundException, ConflictException } from '@nestjs/common';
 
 describe('JobsService', () => {

@@ -210,7 +210,7 @@ export class EmailService {
       currency: invoiceData.currency,
       notes: invoiceData.notes,
       paymentInstructions: invoiceData.paymentInstructions,
-    });
+    } as any);
 
     // Email content
     const subject = `Invoice ${invoiceData.number} - ${invoiceData.organization.name}`;

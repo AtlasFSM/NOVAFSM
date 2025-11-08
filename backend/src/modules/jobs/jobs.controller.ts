@@ -155,8 +155,8 @@ export class JobsController {
 
       // Technicians cannot change certain fields
       delete dto.assignedTechnicianId;
-      delete dto.customerId;
-      delete dto.siteId;
+      delete (dto as any).customerId;
+      delete (dto as any).siteId;
     }
 
     const oldStatus = currentJob.status;

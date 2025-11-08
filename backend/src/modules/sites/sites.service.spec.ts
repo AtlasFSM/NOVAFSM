@@ -1,6 +1,6 @@
 import { Test } from '@nestjs/testing';
 import { SitesService } from './sites.service';
-import { PrismaService } from '../prisma/prisma.service';
+import { PrismaService } from '../../common/prisma/prisma.service';
 
 describe('SitesService', () => {
   let service: SitesService;
@@ -33,11 +33,11 @@ describe('SitesService', () => {
       name: 'Main Office',
       address: '123 Main St',
       city: 'Boston',
-      provinceState: 'MA',
-      postalZip: '02101',
+      state: 'MA',
+      postalCode: '02101',
       country: 'USA',
-    });
-    expect(result.name).toBe('Main Office');
+    } as any);
+    expect(result.data.name).toBe('Main Office');
   });
 
   it('should geocode address', async () => {
@@ -48,10 +48,10 @@ describe('SitesService', () => {
       name: 'Site',
       address: '1 Boston St',
       city: 'Boston',
-      provinceState: 'MA',
-      postalZip: '02101',
+      state: 'MA',
+      postalCode: '02101',
       country: 'USA',
-    });
+    } as any);
     expect(result).toBeDefined();
   });
 });

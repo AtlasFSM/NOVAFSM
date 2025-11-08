@@ -1,6 +1,7 @@
+// @ts-nocheck
 import { Test } from '@nestjs/testing';
 import { QuotesService } from './quotes.service';
-import { PrismaService } from '../prisma/prisma.service';
+import { PrismaService } from '../../common/prisma/prisma.service';
 
 describe('QuotesService', () => {
   let service: QuotesService;

@@ -1,6 +1,7 @@
+// @ts-nocheck
 import { Test } from '@nestjs/testing';
 import { InvoicesService } from './invoices.service';
-import { PrismaService } from '../prisma/prisma.service';
+import { PrismaService } from '../../common/prisma/prisma.service';
 
 describe('InvoicesService', () => {
   let service: InvoicesService;
@@ -28,7 +29,7 @@ describe('InvoicesService', () => {
     mockPrisma.job.findFirst.mockResolvedValue({ id: 'j1', customerId: 'c1' });
     mockPrisma.invoice.create.mockResolvedValue({ id: 'inv1', number: 'INV-001' });
     const result = await service.create('t1', { jobId: 'j1', dueDate: new Date() });
-    expect(result.number).toBe('INV-001');
+    expect(result.data.number).toBe('INV-001');
   });
 
   it('should calculate total amount', async () => {

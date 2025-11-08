@@ -134,7 +134,7 @@ export class PriceItemsService {
         name: dto.name,
         description: dto.description,
         unit: dto.unit || 'EA',
-        defaultRate: new Prisma.Decimal(dto.defaultRate),
+        defaultRate: dto.defaultRate,
         taxCode: dto.taxCode,
         isActive: dto.isActive ?? true,
         category: dto.category,
@@ -189,7 +189,7 @@ export class PriceItemsService {
     };
 
     if (dto.defaultRate !== undefined) {
-      updateData.defaultRate = new Prisma.Decimal(dto.defaultRate);
+      updateData.defaultRate = dto.defaultRate;
     }
 
     const priceItem = await this.prisma.priceItem.update({
@@ -242,7 +242,7 @@ export class PriceItemsService {
     });
 
     if (priceLists.length !== priceListIds.length) {
-      const foundIds = priceLists.map((pl) => pl.id);
+      const foundIds = priceLists.map((pl: any) => pl.id);
       const missingIds = priceListIds.filter((id) => !foundIds.includes(id));
       throw new NotFoundException(`Price lists not found: ${missingIds.join(', ')}`);
     }
@@ -278,7 +278,7 @@ export class PriceItemsService {
     });
 
     if (existingItems.length > 0) {
-      const conflicts = existingItems.map((item) => `${item.priceListId}:${item.sku}`);
+      const conflicts = existingItems.map((item: any) => `${item.priceListId}:${item.sku}`);
       throw new ConflictException(`SKUs already exist in database: ${conflicts.join(', ')}`);
     }
 
@@ -293,7 +293,7 @@ export class PriceItemsService {
             name: item.name,
             description: item.description,
             unit: item.unit || 'EA',
-            defaultRate: new Prisma.Decimal(item.defaultRate),
+            defaultRate: item.defaultRate,
             taxCode: item.taxCode,
             isActive: item.isActive ?? true,
             category: item.category,

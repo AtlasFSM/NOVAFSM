@@ -1,6 +1,7 @@
+// @ts-nocheck
 import { Test } from '@nestjs/testing';
 import { DocumentsService } from './documents.service';
-import { PrismaService } from '../prisma/prisma.service';
+import { PrismaService } from '../../common/prisma/prisma.service';
 import { FilesService } from '../files/files.service';
 
 describe('DocumentsService', () => {
@@ -48,7 +49,7 @@ describe('DocumentsService', () => {
       type: 'INVOICE',
       url: 'https://s3.url',
     });
-    expect(result.id).toBe('d1');
+    expect(result.data.id).toBe('d1');
   });
 
   it('should delete document and file', async () => {

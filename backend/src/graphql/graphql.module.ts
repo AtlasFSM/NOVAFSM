@@ -10,7 +10,7 @@ import { join } from 'path';
       autoSchemaFile: join(process.cwd(), 'src/graphql/schema.gql'),
       sortSchema: true,
       playground: process.env.NODE_ENV !== 'production',
-      context: ({ req }) => ({ req }),
+      context: ({ req }: any) => ({ req }),
     }),
   ],
 })

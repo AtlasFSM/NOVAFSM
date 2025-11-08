@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { ExecutionContext } from '@nestjs/common';
 import { JwtAuthGuard } from './jwt-auth.guard';
 

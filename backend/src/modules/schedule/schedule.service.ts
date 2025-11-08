@@ -73,7 +73,7 @@ export class ScheduleService {
     // Group by technician
     const scheduleByTechnician = new Map<string, any[]>();
 
-    jobs.forEach((job) => {
+    jobs.forEach((job: any) => {
       if (job.assignedTechnicianId) {
         if (!scheduleByTechnician.has(job.assignedTechnicianId)) {
           scheduleByTechnician.set(job.assignedTechnicianId, []);
@@ -174,7 +174,7 @@ export class ScheduleService {
 
     // Check availability for each technician
     const availabilityChecks = await Promise.all(
-      technicians.map(async (tech) => {
+      technicians.map(async (tech: any) => {
         const result = await this.checkAvailability(tenantId, {
           technicianId: tech.id,
           startDate,
@@ -234,7 +234,7 @@ export class ScheduleService {
 
     // Calculate total hours scheduled
     let totalScheduledHours = 0;
-    jobs.forEach((job) => {
+    jobs.forEach((job: any) => {
       const start = new Date(job.scheduledStart).getTime();
       const end = new Date(job.scheduledEnd).getTime();
       const hours = (end - start) / (1000 * 60 * 60);
@@ -318,7 +318,7 @@ export class ScheduleService {
       const slotEnd = new Date(currentSlot.getTime() + 30 * 60 * 1000);
 
       // Check if any job overlaps this slot
-      const overlappingJob = jobs.find((job) => {
+      const overlappingJob = jobs.find((job: any) => {
         const jobStart = new Date(job.scheduledStart);
         const jobEnd = new Date(job.scheduledEnd);
         return jobStart < slotEnd && jobEnd > currentSlot;

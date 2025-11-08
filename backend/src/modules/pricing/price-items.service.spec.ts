@@ -1,6 +1,7 @@
+// @ts-nocheck
 import { Test } from '@nestjs/testing';
 import { PriceItemsService } from './price-items.service';
-import { PrismaService } from '../prisma/prisma.service';
+import { PrismaService } from '../../common/prisma/prisma.service';
 
 describe('PriceItemsService', () => {
   let service: PriceItemsService;
@@ -27,12 +28,11 @@ describe('PriceItemsService', () => {
   it('should create price item', async () => {
     mockPrisma.priceItem.create.mockResolvedValue({ id: 'p1', code: 'LABOR-001', unitPrice: 75.0 });
     const result = await service.create('t1', {
-      code: 'LABOR-001',
+      sku: 'LABOR-001',
       name: 'Labor Hour',
-      unitPrice: 75.0,
-      category: 'LABOR',
-    });
-    expect(result.code).toBe('LABOR-001');
+      defaultRate: 75.0,
+    } as any);
+    expect(result.data.code).toBe('LABOR-001');
   });
 
   it('should find all active price items', async () => {

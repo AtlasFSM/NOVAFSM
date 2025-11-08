@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { CustomersService } from './customers.service';
-import { PrismaService } from '../prisma/prisma.service';
+import { PrismaService } from '../../common/prisma/prisma.service';
 import { NotFoundException } from '@nestjs/common';
 
 describe('CustomersService', () => {
@@ -85,7 +85,7 @@ describe('CustomersService', () => {
 
       const result = await service.update('tenant-1', '1', { name: 'New' });
 
-      expect(result.name).toBe('New');
+      expect(result.data.name).toBe('New');
     });
   });
 
@@ -95,7 +95,7 @@ describe('CustomersService', () => {
       mockPrismaService.customer.findFirst.mockResolvedValue(mockCustomer);
       mockPrismaService.customer.delete.mockResolvedValue(mockCustomer);
 
-      await service.remove('tenant-1', '1');
+      await service.delete('tenant-1', '1');
 
       expect(mockPrismaService.customer.delete).toHaveBeenCalled();
     });
