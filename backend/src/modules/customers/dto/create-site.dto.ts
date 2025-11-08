@@ -1,11 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import {
-  IsString,
-  IsOptional,
-  IsIn,
-  IsNumber,
-  IsUUID,
-} from 'class-validator';
+import { IsString, IsOptional, IsIn, IsNumber, IsUUID } from 'class-validator';
 
 export class CreateSiteDto {
   @ApiProperty({ example: '123e4567-e89b-12d3-a456-426614174000' })
@@ -46,7 +40,7 @@ export class CreateSiteDto {
   @IsNumber()
   latitude?: number;
 
-  @ApiProperty({ example: -79.644120, required: false })
+  @ApiProperty({ example: -79.64412, required: false })
   @IsOptional()
   @IsNumber()
   longitude?: number;

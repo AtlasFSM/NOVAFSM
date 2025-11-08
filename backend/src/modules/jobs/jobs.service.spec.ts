@@ -185,9 +185,9 @@ describe('JobsService', () => {
 
       mockPrismaService.job.findFirst.mockResolvedValue(mockJob);
 
-      await expect(
-        service.update('tenant-1', 'job-1', { status: 'COMPLETED' }, 1),
-      ).rejects.toThrow(ConflictException);
+      await expect(service.update('tenant-1', 'job-1', { status: 'COMPLETED' }, 1)).rejects.toThrow(
+        ConflictException,
+      );
     });
   });
 

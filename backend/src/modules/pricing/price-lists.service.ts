@@ -98,9 +98,7 @@ export class PriceListsService {
     });
 
     if (existing) {
-      throw new ConflictException(
-        `Price list with name "${dto.name}" already exists`,
-      );
+      throw new ConflictException(`Price list with name "${dto.name}" already exists`);
     }
 
     // If isDefault is true, unset other defaults in transaction
@@ -173,9 +171,7 @@ export class PriceListsService {
       });
 
       if (duplicate) {
-        throw new ConflictException(
-          `Price list with name "${dto.name}" already exists`,
-        );
+        throw new ConflictException(`Price list with name "${dto.name}" already exists`);
       }
     }
 
@@ -274,9 +270,7 @@ export class PriceListsService {
     }
 
     if (existing.status !== 'ACTIVE') {
-      throw new BadRequestException(
-        'Cannot set an archived price list as default',
-      );
+      throw new BadRequestException('Cannot set an archived price list as default');
     }
 
     // Use transaction to unset other defaults and set this one

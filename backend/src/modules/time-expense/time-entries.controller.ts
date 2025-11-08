@@ -84,10 +84,7 @@ export class TimeEntriesController {
   @Post()
   @ApiOperation({ summary: 'Create new time entry' })
   @ApiResponse({ status: 201, description: 'Time entry created successfully' })
-  async create(
-    @CurrentUser() user: CurrentUserPayload,
-    @Body() dto: CreateTimeEntryDto,
-  ) {
+  async create(@CurrentUser() user: CurrentUserPayload, @Body() dto: CreateTimeEntryDto) {
     return this.timeEntriesService.create(user.userId, dto);
   }
 
@@ -109,10 +106,7 @@ export class TimeEntriesController {
   @ApiResponse({ status: 200, description: 'Time entry deleted successfully' })
   @ApiResponse({ status: 404, description: 'Time entry not found' })
   @ApiResponse({ status: 403, description: 'Forbidden - can only delete own entries' })
-  async delete(
-    @Param('id', ParseUUIDPipe) id: string,
-    @CurrentUser() user: CurrentUserPayload,
-  ) {
+  async delete(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: CurrentUserPayload) {
     return this.timeEntriesService.delete(id, user.userId, user.role);
   }
 }

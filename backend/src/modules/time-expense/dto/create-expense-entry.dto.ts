@@ -1,5 +1,14 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsEnum, IsUUID, IsOptional, IsNumber, IsDateString, Min, IsNotEmpty } from 'class-validator';
+import {
+  IsString,
+  IsEnum,
+  IsUUID,
+  IsOptional,
+  IsNumber,
+  IsDateString,
+  Min,
+  IsNotEmpty,
+} from 'class-validator';
 
 export class CreateExpenseEntryDto {
   @ApiPropertyOptional({ description: 'Job ID (optional for general expenses)' })

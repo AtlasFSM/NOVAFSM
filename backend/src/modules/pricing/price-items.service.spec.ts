@@ -5,7 +5,14 @@ import { PrismaService } from '../prisma/prisma.service';
 describe('PriceItemsService', () => {
   let service: PriceItemsService;
   const mockPrisma = {
-    priceItem: { create: jest.fn(), findMany: jest.fn(), findFirst: jest.fn(), update: jest.fn(), delete: jest.fn(), count: jest.fn() },
+    priceItem: {
+      create: jest.fn(),
+      findMany: jest.fn(),
+      findFirst: jest.fn(),
+      update: jest.fn(),
+      delete: jest.fn(),
+      count: jest.fn(),
+    },
   };
 
   beforeEach(async () => {
@@ -18,8 +25,13 @@ describe('PriceItemsService', () => {
   it('should be defined', () => expect(service).toBeDefined());
 
   it('should create price item', async () => {
-    mockPrisma.priceItem.create.mockResolvedValue({ id: 'p1', code: 'LABOR-001', unitPrice: 75.00 });
-    const result = await service.create('t1', { code: 'LABOR-001', name: 'Labor Hour', unitPrice: 75.00, category: 'LABOR' });
+    mockPrisma.priceItem.create.mockResolvedValue({ id: 'p1', code: 'LABOR-001', unitPrice: 75.0 });
+    const result = await service.create('t1', {
+      code: 'LABOR-001',
+      name: 'Labor Hour',
+      unitPrice: 75.0,
+      category: 'LABOR',
+    });
     expect(result.code).toBe('LABOR-001');
   });
 

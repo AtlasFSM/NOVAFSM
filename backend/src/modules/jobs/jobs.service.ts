@@ -95,11 +95,7 @@ export class JobsService {
             },
           },
         },
-        orderBy: [
-          { scheduledStart: 'asc' },
-          { priority: 'desc' },
-          { createdAt: 'desc' },
-        ],
+        orderBy: [{ scheduledStart: 'asc' }, { priority: 'desc' }, { createdAt: 'desc' }],
         skip,
         take: limit,
       }),
@@ -208,18 +204,14 @@ export class JobsService {
       );
 
       if (hasConflict) {
-        throw new ConflictException(
-          'Technician has a conflicting job in this time slot',
-        );
+        throw new ConflictException('Technician has a conflicting job in this time slot');
       }
     }
 
     // Calculate SLA due date if slaMinutes provided
     let slaDueAt: Date | null = null;
     if (dto.slaMinutes && dto.scheduledStart) {
-      slaDueAt = new Date(
-        new Date(dto.scheduledStart).getTime() + dto.slaMinutes * 60000,
-      );
+      slaDueAt = new Date(new Date(dto.scheduledStart).getTime() + dto.slaMinutes * 60000);
     }
 
     const job = await this.prisma.job.create({
@@ -289,18 +281,14 @@ export class JobsService {
       );
 
       if (hasConflict) {
-        throw new ConflictException(
-          'Technician has a conflicting job in this time slot',
-        );
+        throw new ConflictException('Technician has a conflicting job in this time slot');
       }
     }
 
     // Calculate SLA due date if slaMinutes provided
     let slaDueAt: Date | undefined | null = undefined;
     if (dto.slaMinutes !== undefined) {
-      const startDate = dto.scheduledStart
-        ? new Date(dto.scheduledStart)
-        : job.scheduledStart;
+      const startDate = dto.scheduledStart ? new Date(dto.scheduledStart) : job.scheduledStart;
       if (startDate && dto.slaMinutes) {
         slaDueAt = new Date(startDate.getTime() + dto.slaMinutes * 60000);
       } else {
@@ -400,9 +388,7 @@ export class JobsService {
       );
 
       if (hasConflict) {
-        throw new ConflictException(
-          'Technician has a conflicting job in this time slot',
-        );
+        throw new ConflictException('Technician has a conflicting job in this time slot');
       }
     }
 
@@ -431,9 +417,7 @@ export class JobsService {
       },
     });
 
-    this.logger.log(
-      `Assigned technician ${dto.technicianId} to job ${job.number} (ID: ${id})`,
-    );
+    this.logger.log(`Assigned technician ${dto.technicianId} to job ${job.number} (ID: ${id})`);
 
     return updatedJob;
   }

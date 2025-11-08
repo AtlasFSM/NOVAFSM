@@ -1,12 +1,4 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Delete,
-  Body,
-  Query,
-  UseGuards,
-} from '@nestjs/common';
+import { Controller, Get, Post, Delete, Body, Query, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiResponse, ApiQuery } from '@nestjs/swagger';
 import { FilesService } from './files.service';
 import { PresignUploadDto } from './dto/presign-upload.dto';
@@ -25,10 +17,7 @@ export class FilesController {
   @ApiOperation({ summary: 'Get presigned URL for file upload' })
   @ApiResponse({ status: 200, description: 'Presigned URL generated successfully' })
   @ApiResponse({ status: 400, description: 'Invalid input' })
-  async presignUpload(
-    @CurrentUser() user: CurrentUserPayload,
-    @Body() dto: PresignUploadDto,
-  ) {
+  async presignUpload(@CurrentUser() user: CurrentUserPayload, @Body() dto: PresignUploadDto) {
     return this.filesService.presignUpload(
       user.tenantId,
       dto.entity,
@@ -43,10 +32,7 @@ export class FilesController {
   @ApiResponse({ status: 200, description: 'Presigned URL generated successfully' })
   @ApiResponse({ status: 400, description: 'Invalid input or access denied' })
   @ApiQuery({ name: 'key', required: true, type: String })
-  async presignDownload(
-    @CurrentUser() user: CurrentUserPayload,
-    @Query('key') key: string,
-  ) {
+  async presignDownload(@CurrentUser() user: CurrentUserPayload, @Query('key') key: string) {
     return this.filesService.presignDownload(user.tenantId, key);
   }
 
@@ -68,10 +54,7 @@ export class FilesController {
   @ApiResponse({ status: 200, description: 'File deleted successfully' })
   @ApiResponse({ status: 400, description: 'Invalid input or access denied' })
   @ApiQuery({ name: 'key', required: true, type: String })
-  async deleteFile(
-    @CurrentUser() user: CurrentUserPayload,
-    @Query('key') key: string,
-  ) {
+  async deleteFile(@CurrentUser() user: CurrentUserPayload, @Query('key') key: string) {
     return this.filesService.deleteFile(user.tenantId, key);
   }
 }

@@ -49,7 +49,8 @@ describe('FilesService', () => {
     it('should generate presigned URL for file upload', async () => {
       const fileName = 'test-document.pdf';
       const fileType = 'application/pdf';
-      const expectedUrl = 'https://test-bucket.s3.amazonaws.com/uploads/test-document.pdf?signature=...';
+      const expectedUrl =
+        'https://test-bucket.s3.amazonaws.com/uploads/test-document.pdf?signature=...';
       const expectedKey = 'uploads/test-document.pdf';
 
       mockS3Client.send.mockResolvedValue({
@@ -82,7 +83,8 @@ describe('FilesService', () => {
   describe('generatePresignedDownloadUrl', () => {
     it('should generate presigned URL for file download', async () => {
       const key = 'uploads/document-123.pdf';
-      const expectedUrl = 'https://test-bucket.s3.amazonaws.com/uploads/document-123.pdf?signature=...';
+      const expectedUrl =
+        'https://test-bucket.s3.amazonaws.com/uploads/document-123.pdf?signature=...';
 
       mockS3Client.send.mockResolvedValue({
         url: expectedUrl,
@@ -159,10 +161,7 @@ describe('FilesService', () => {
       });
 
       const module = await Test.createTestingModule({
-        providers: [
-          FilesService,
-          { provide: ConfigService, useValue: mockConfigService },
-        ],
+        providers: [FilesService, { provide: ConfigService, useValue: mockConfigService }],
       }).compile();
 
       const filesService = module.get<FilesService>(FilesService);

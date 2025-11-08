@@ -17,7 +17,7 @@ describe('RolesGuard', () => {
 
   it('should allow access when user has required role', () => {
     jest.spyOn(reflector, 'get').mockReturnValue(['ADMIN']);
-    
+
     const mockContext = {
       switchToHttp: () => ({
         getRequest: () => ({ user: { role: 'ADMIN' } }),
@@ -30,7 +30,7 @@ describe('RolesGuard', () => {
 
   it('should deny access when user lacks required role', () => {
     jest.spyOn(reflector, 'get').mockReturnValue(['ADMIN']);
-    
+
     const mockContext = {
       switchToHttp: () => ({
         getRequest: () => ({ user: { role: 'TECHNICIAN' } }),
@@ -43,7 +43,7 @@ describe('RolesGuard', () => {
 
   it('should allow access when no roles specified', () => {
     jest.spyOn(reflector, 'get').mockReturnValue(null);
-    
+
     const mockContext = {
       switchToHttp: () => ({
         getRequest: () => ({ user: { role: 'TECHNICIAN' } }),

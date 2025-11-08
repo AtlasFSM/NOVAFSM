@@ -72,10 +72,7 @@ export class OrganizationsController {
   @ApiOperation({ summary: 'Update organization' })
   @ApiResponse({ status: 200, description: 'Organization updated successfully' })
   @ApiResponse({ status: 404, description: 'Organization not found' })
-  async update(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Body() dto: UpdateOrganizationDto,
-  ) {
+  async update(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateOrganizationDto) {
     return this.organizationsService.update(id, dto);
   }
 

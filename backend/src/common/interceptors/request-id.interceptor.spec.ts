@@ -38,10 +38,7 @@ describe('RequestIdInterceptor', () => {
 
       interceptor.intercept(mockExecutionContext, mockCallHandler).subscribe({
         next: (result) => {
-          expect(mockSetHeader).toHaveBeenCalledWith(
-            'X-Request-Id',
-            expect.any(String),
-          );
+          expect(mockSetHeader).toHaveBeenCalledWith('X-Request-Id', expect.any(String));
           expect(result).toEqual({ success: true, data: {} });
           done();
         },
@@ -90,7 +87,9 @@ describe('RequestIdInterceptor', () => {
       interceptor.intercept(mockExecutionContext, mockCallHandler).subscribe({
         next: () => {
           const requestId = mockSetHeader.mock.calls[0][1];
-          expect(requestId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
+          expect(requestId).toMatch(
+            /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
+          );
           done();
         },
         error: done,

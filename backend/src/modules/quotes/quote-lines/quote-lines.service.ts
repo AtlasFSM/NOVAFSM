@@ -43,7 +43,7 @@ export class QuoteLinesService {
   async calculateLine(
     tenantId: string,
     line: CreateQuoteLineDto,
-    provinceState?: string
+    provinceState?: string,
   ): Promise<CalculatedLine> {
     // Calculate line amount: (qty * price) - discounts
     const subtotal = line.quantity * line.unitPrice;
@@ -78,7 +78,7 @@ export class QuoteLinesService {
   async calculateTaxes(
     tenantId: string,
     amount: number,
-    provinceState?: string
+    provinceState?: string,
   ): Promise<TaxDetail[]> {
     if (!provinceState || amount <= 0) {
       return [];
@@ -101,9 +101,7 @@ export class QuoteLinesService {
 
     // Calculate tax amount for each applicable rate
     const taxes: TaxDetail[] = taxRates.map((taxRate) => {
-      const rate = taxRate.rate instanceof Decimal
-        ? taxRate.rate.toNumber()
-        : Number(taxRate.rate);
+      const rate = taxRate.rate instanceof Decimal ? taxRate.rate.toNumber() : Number(taxRate.rate);
       const taxAmount = amount * rate;
 
       return {
@@ -128,10 +126,7 @@ export class QuoteLinesService {
     const subtotal = lines.reduce((sum, line) => sum + line.amount, 0);
 
     const taxTotal = lines.reduce((sum, line) => {
-      const lineTaxTotal = line.taxes.reduce(
-        (taxSum, tax) => taxSum + tax.amount,
-        0
-      );
+      const lineTaxTotal = line.taxes.reduce((taxSum, tax) => taxSum + tax.amount, 0);
       return sum + lineTaxTotal;
     }, 0);
 
@@ -152,7 +147,7 @@ export class QuoteLinesService {
     tx: any, // Prisma transaction client
     tenantId: string,
     quoteId: string,
-    calculatedLines: CalculatedLine[]
+    calculatedLines: CalculatedLine[],
   ): Promise<void> {
     // Create all lines in bulk
     await tx.quoteLine.createMany({
@@ -181,7 +176,7 @@ export class QuoteLinesService {
     tx: any, // Prisma transaction client
     tenantId: string,
     quoteId: string,
-    calculatedLines: CalculatedLine[]
+    calculatedLines: CalculatedLine[],
   ): Promise<void> {
     // Delete existing lines
     await tx.quoteLine.deleteMany({
@@ -202,7 +197,7 @@ export class QuoteLinesService {
   async deleteLines(
     tx: any, // Prisma transaction client
     tenantId: string,
-    quoteId: string
+    quoteId: string,
   ): Promise<void> {
     await tx.quoteLine.deleteMany({
       where: {
@@ -244,9 +239,7 @@ export class QuoteLinesService {
       // Ensure discounts don't exceed subtotal
       const subtotal = line.quantity * line.unitPrice;
       if (line.discounts && line.discounts > subtotal) {
-        throw new Error(
-          `Line "${line.description}" discounts cannot exceed subtotal`
-        );
+        throw new Error(`Line "${line.description}" discounts cannot exceed subtotal`);
       }
     }
   }

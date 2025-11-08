@@ -77,7 +77,7 @@ export class CreateCustomerDto {
   @IsIn(['CA', 'US'])
   country?: string;
 
-  @ApiProperty({ example: 43.651070, required: false })
+  @ApiProperty({ example: 43.65107, required: false })
   @IsOptional()
   @IsNumber()
   latitude?: number;

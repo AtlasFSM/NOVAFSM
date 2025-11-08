@@ -155,7 +155,7 @@ export class ScheduleService {
     tenantId: string,
     startDate: string,
     endDate: string,
-    excludeJobId?: string
+    excludeJobId?: string,
   ) {
     // Get all active technicians for the tenant
     const technicians = await this.prisma.user.findMany({
@@ -187,7 +187,7 @@ export class ScheduleService {
           available: result.data.available,
           conflicts: result.data.conflicts,
         };
-      })
+      }),
     );
 
     const available = availabilityChecks.filter((check) => check.available);
@@ -211,7 +211,7 @@ export class ScheduleService {
     tenantId: string,
     technicianId: string,
     startDate: string,
-    endDate: string
+    endDate: string,
   ) {
     const jobs = await this.prisma.job.findMany({
       where: {
@@ -248,9 +248,8 @@ export class ScheduleService {
     const workingDays = Math.floor((daysDiff / 7) * 5) + (daysDiff % 7);
     const availableHours = workingDays * 8;
 
-    const utilizationPercent = availableHours > 0
-      ? Math.round((totalScheduledHours / availableHours) * 100)
-      : 0;
+    const utilizationPercent =
+      availableHours > 0 ? Math.round((totalScheduledHours / availableHours) * 100) : 0;
 
     return {
       success: true,
@@ -270,11 +269,7 @@ export class ScheduleService {
   /**
    * Get calendar view data with time slots
    */
-  async getCalendarView(
-    tenantId: string,
-    technicianId: string,
-    date: string
-  ) {
+  async getCalendarView(tenantId: string, technicianId: string, date: string) {
     const dayStart = new Date(date);
     dayStart.setHours(0, 0, 0, 0);
 
@@ -366,7 +361,7 @@ export class ScheduleService {
     tenantId: string,
     technicianId: string,
     duration: number, // in hours
-    preferredDate: string
+    preferredDate: string,
   ) {
     const date = new Date(preferredDate);
     const startOfDay = new Date(date);

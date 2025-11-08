@@ -40,7 +40,11 @@ export class FormsController {
   @Put('templates/:id')
   @Roles('ADMIN', 'DISPATCHER')
   @ApiOperation({ summary: 'Update template' })
-  async updateTemplate(@Request() req, @Param('id') id: string, @Body() dto: Partial<CreateFormTemplateDto>) {
+  async updateTemplate(
+    @Request() req,
+    @Param('id') id: string,
+    @Body() dto: Partial<CreateFormTemplateDto>,
+  ) {
     return this.formsService.updateTemplate(req.user.tenantId, id, dto);
   }
 

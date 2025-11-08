@@ -1,5 +1,13 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsEnum, IsOptional, IsArray, ValidateNested, IsObject, IsBoolean } from 'class-validator';
+import {
+  IsString,
+  IsEnum,
+  IsOptional,
+  IsArray,
+  ValidateNested,
+  IsObject,
+  IsBoolean,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 
 export enum FormFieldType {

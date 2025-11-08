@@ -19,10 +19,7 @@ export class SequenceService {
    * @param type - Sequence type (QUOTE, JOB, INVOICE)
    * @returns Formatted number string (e.g., "Q-2025-000001")
    */
-  async generateNumber(
-    tenantId: string,
-    type: 'QUOTE' | 'JOB' | 'INVOICE'
-  ): Promise<string> {
+  async generateNumber(tenantId: string, type: 'QUOTE' | 'JOB' | 'INVOICE'): Promise<string> {
     const currentYear = new Date().getFullYear();
     const prefix = this.getPrefix(type);
 
@@ -91,10 +88,7 @@ export class SequenceService {
    * Get current sequence value (without incrementing)
    * Useful for preview or validation
    */
-  async getCurrentValue(
-    tenantId: string,
-    type: 'QUOTE' | 'JOB' | 'INVOICE'
-  ): Promise<number> {
+  async getCurrentValue(tenantId: string, type: 'QUOTE' | 'JOB' | 'INVOICE'): Promise<number> {
     const currentYear = new Date().getFullYear();
 
     const sequence = await this.prisma.sequence.findUnique({
@@ -118,7 +112,7 @@ export class SequenceService {
     tenantId: string,
     type: 'QUOTE' | 'JOB' | 'INVOICE',
     year: number,
-    value: number = 0
+    value: number = 0,
   ): Promise<void> {
     await this.prisma.sequence.upsert({
       where: {

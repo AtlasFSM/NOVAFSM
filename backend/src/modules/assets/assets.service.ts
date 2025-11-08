@@ -199,9 +199,7 @@ export class AssetsService {
     }
 
     if (asset.status === AssetStatus.MAINTENANCE || asset.status === AssetStatus.RETIRED) {
-      throw new BadRequestException(
-        `Cannot assign asset with status ${asset.status}`,
-      );
+      throw new BadRequestException(`Cannot assign asset with status ${asset.status}`);
     }
 
     // Verify that the target entity exists
@@ -306,9 +304,7 @@ export class AssetsService {
       throw new NotFoundException('Asset not found');
     }
 
-    const maintenanceLogs = Array.isArray(asset.maintenanceLogs)
-      ? asset.maintenanceLogs
-      : [];
+    const maintenanceLogs = Array.isArray(asset.maintenanceLogs) ? asset.maintenanceLogs : [];
 
     maintenanceLogs.push({
       ...dto,
@@ -361,11 +357,7 @@ export class AssetsService {
     };
   }
 
-  private async verifyAssignmentTarget(
-    tenantId: string,
-    type: string,
-    targetId: string,
-  ) {
+  private async verifyAssignmentTarget(tenantId: string, type: string, targetId: string) {
     let exists = false;
 
     switch (type) {

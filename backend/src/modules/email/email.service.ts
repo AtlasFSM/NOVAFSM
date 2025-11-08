@@ -338,12 +338,16 @@ export class EmailService {
                 <h2>${this.formatCurrency(invoiceData.total, invoiceData.currency)}</h2>
               </div>
 
-              ${invoiceData.paymentInstructions ? `
+              ${
+                invoiceData.paymentInstructions
+                  ? `
                 <div class="info-box">
                   <p><span class="label">Payment Instructions:</span></p>
                   <p>${invoiceData.paymentInstructions}</p>
                 </div>
-              ` : ''}
+              `
+                  : ''
+              }
 
               <p>The invoice is attached as a PDF document. Please remit payment by the due date.</p>
 

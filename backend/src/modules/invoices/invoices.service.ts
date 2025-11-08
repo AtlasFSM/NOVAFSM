@@ -256,7 +256,8 @@ export class InvoicesService {
     if (dto.lines !== undefined) updateData.lines = dto.lines as any;
     if (dto.notes !== undefined) updateData.notes = dto.notes;
     if (dto.termsConditions !== undefined) updateData.termsConditions = dto.termsConditions;
-    if (dto.issuedAt !== undefined) updateData.issuedAt = dto.issuedAt ? new Date(dto.issuedAt) : null;
+    if (dto.issuedAt !== undefined)
+      updateData.issuedAt = dto.issuedAt ? new Date(dto.issuedAt) : null;
     if (dto.dueAt !== undefined) updateData.dueAt = dto.dueAt ? new Date(dto.dueAt) : null;
     if (dto.paidAt !== undefined) updateData.paidAt = dto.paidAt ? new Date(dto.paidAt) : null;
 

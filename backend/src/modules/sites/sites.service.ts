@@ -69,12 +69,15 @@ export class SitesService {
     };
   }
 
-  async findAll(tenantId: string, params: {
-    skip?: number;
-    take?: number;
-    customerId?: string;
-    search?: string;
-  }) {
+  async findAll(
+    tenantId: string,
+    params: {
+      skip?: number;
+      take?: number;
+      customerId?: string;
+      search?: string;
+    },
+  ) {
     const { skip = 0, take = 50, customerId, search } = params;
 
     const where: any = { tenantId };
@@ -96,10 +99,7 @@ export class SitesService {
         where,
         skip,
         take,
-        orderBy: [
-          { isPrimary: 'desc' },
-          { createdAt: 'desc' },
-        ],
+        orderBy: [{ isPrimary: 'desc' }, { createdAt: 'desc' }],
         include: {
           customer: {
             select: {
@@ -258,7 +258,7 @@ export class SitesService {
 
     if (existing._count.jobs > 0) {
       throw new BadRequestException(
-        `Cannot delete site with ${existing._count.jobs} associated jobs`
+        `Cannot delete site with ${existing._count.jobs} associated jobs`,
       );
     }
 

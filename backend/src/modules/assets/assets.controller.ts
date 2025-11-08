@@ -109,11 +109,7 @@ export class AssetsController {
   @ApiOperation({ summary: 'Add maintenance log entry' })
   @ApiResponse({ status: 200, description: 'Maintenance log added successfully' })
   @ApiResponse({ status: 404, description: 'Asset not found' })
-  async addMaintenanceLog(
-    @Request() req,
-    @Param('id') id: string,
-    @Body() dto: MaintenanceLogDto,
-  ) {
+  async addMaintenanceLog(@Request() req, @Param('id') id: string, @Body() dto: MaintenanceLogDto) {
     return this.assetsService.addMaintenanceLog(req.user.tenantId, id, dto);
   }
 }

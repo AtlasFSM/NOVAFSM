@@ -1,12 +1,4 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Body,
-  Query,
-  UseGuards,
-  ParseUUIDPipe,
-} from '@nestjs/common';
+import { Controller, Get, Post, Body, Query, UseGuards, ParseUUIDPipe } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiResponse, ApiQuery } from '@nestjs/swagger';
 import { ScheduleService } from './schedule.service';
 import { CheckAvailabilityDto } from './dto/check-availability.dto';
@@ -26,10 +18,7 @@ export class ScheduleController {
   @Roles('ADMIN', 'DISPATCHER')
   @ApiOperation({ summary: 'Get schedule for date range' })
   @ApiResponse({ status: 200, description: 'Schedule retrieved successfully' })
-  async getSchedule(
-    @CurrentUser() user: CurrentUserPayload,
-    @Body() dto: GetScheduleDto,
-  ) {
+  async getSchedule(@CurrentUser() user: CurrentUserPayload, @Body() dto: GetScheduleDto) {
     return this.scheduleService.getSchedule(user.tenantId, dto);
   }
 

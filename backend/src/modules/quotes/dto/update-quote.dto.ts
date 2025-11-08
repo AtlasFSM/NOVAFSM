@@ -8,7 +8,7 @@ import {
   IsArray,
   ValidateNested,
   IsInt,
-  Min
+  Min,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { CreateQuoteLineDto } from './quote-line.dto';
@@ -17,7 +17,7 @@ export class UpdateQuoteDto {
   @ApiProperty({
     required: false,
     description: 'Customer ID',
-    format: 'uuid'
+    format: 'uuid',
   })
   @IsOptional()
   @IsUUID()
@@ -26,7 +26,7 @@ export class UpdateQuoteDto {
   @ApiProperty({
     required: false,
     description: 'Site ID',
-    format: 'uuid'
+    format: 'uuid',
   })
   @IsOptional()
   @IsUUID()
@@ -35,7 +35,7 @@ export class UpdateQuoteDto {
   @ApiProperty({
     required: false,
     description: 'Quote title/subject',
-    example: 'HVAC System Installation'
+    example: 'HVAC System Installation',
   })
   @IsOptional()
   @IsString()
@@ -43,7 +43,7 @@ export class UpdateQuoteDto {
 
   @ApiProperty({
     required: false,
-    description: 'Detailed description of work'
+    description: 'Detailed description of work',
   })
   @IsOptional()
   @IsString()
@@ -52,7 +52,7 @@ export class UpdateQuoteDto {
   @ApiProperty({
     required: false,
     description: 'Quote currency',
-    enum: ['CAD', 'USD']
+    enum: ['CAD', 'USD'],
   })
   @IsOptional()
   @IsIn(['CAD', 'USD'])
@@ -61,7 +61,7 @@ export class UpdateQuoteDto {
   @ApiProperty({
     required: false,
     description: 'Valid until date (ISO 8601)',
-    example: '2025-12-31T23:59:59Z'
+    example: '2025-12-31T23:59:59Z',
   })
   @IsOptional()
   @IsDateString()
@@ -69,7 +69,7 @@ export class UpdateQuoteDto {
 
   @ApiProperty({
     required: false,
-    description: 'Internal notes (not visible to customer)'
+    description: 'Internal notes (not visible to customer)',
   })
   @IsOptional()
   @IsString()
@@ -77,7 +77,7 @@ export class UpdateQuoteDto {
 
   @ApiProperty({
     required: false,
-    description: 'Terms and conditions text'
+    description: 'Terms and conditions text',
   })
   @IsOptional()
   @IsString()
@@ -86,7 +86,7 @@ export class UpdateQuoteDto {
   @ApiProperty({
     required: false,
     description: 'Current version number for optimistic locking',
-    example: 1
+    example: 1,
   })
   @IsOptional()
   @Type(() => Number)
@@ -98,7 +98,7 @@ export class UpdateQuoteDto {
     required: false,
     description: 'Updated quote line items (replaces all existing lines)',
     type: [CreateQuoteLineDto],
-    isArray: true
+    isArray: true,
   })
   @IsOptional()
   @IsArray()

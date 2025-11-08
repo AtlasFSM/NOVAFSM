@@ -10,21 +10,12 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import {
-  ApiTags,
-  ApiOperation,
-  ApiBearerAuth,
-  ApiResponse,
-  ApiParam,
-} from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiResponse, ApiParam } from '@nestjs/swagger';
 import { PriceListsService } from './price-lists.service';
 import { CreatePriceListDto } from './dto/create-price-list.dto';
 import { UpdatePriceListDto } from './dto/update-price-list.dto';
 import { QueryPriceListDto } from './dto/query-price-list.dto';
-import {
-  CurrentUser,
-  CurrentUserPayload,
-} from '../../common/decorators/current-user.decorator';
+import { CurrentUser, CurrentUserPayload } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
 
 @ApiTags('pricing/price-lists')
@@ -37,10 +28,7 @@ export class PriceListsController {
   @Get()
   @ApiOperation({ summary: 'Get all price lists for tenant' })
   @ApiResponse({ status: 200, description: 'Price lists retrieved successfully' })
-  async findAll(
-    @CurrentUser() user: CurrentUserPayload,
-    @Query() query: QueryPriceListDto,
-  ) {
+  async findAll(@CurrentUser() user: CurrentUserPayload, @Query() query: QueryPriceListDto) {
     return this.priceListsService.findAll(user.tenantId, query);
   }
 
@@ -49,10 +37,7 @@ export class PriceListsController {
   @ApiParam({ name: 'id', description: 'Price list ID' })
   @ApiResponse({ status: 200, description: 'Price list retrieved successfully' })
   @ApiResponse({ status: 404, description: 'Price list not found' })
-  async findOne(
-    @CurrentUser() user: CurrentUserPayload,
-    @Param('id') id: string,
-  ) {
+  async findOne(@CurrentUser() user: CurrentUserPayload, @Param('id') id: string) {
     return this.priceListsService.findOne(user.tenantId, id);
   }
 
@@ -60,10 +45,7 @@ export class PriceListsController {
   @ApiOperation({ summary: 'Create a new price list' })
   @ApiResponse({ status: 201, description: 'Price list created successfully' })
   @ApiResponse({ status: 409, description: 'Price list name already exists' })
-  async create(
-    @CurrentUser() user: CurrentUserPayload,
-    @Body() dto: CreatePriceListDto,
-  ) {
+  async create(@CurrentUser() user: CurrentUserPayload, @Body() dto: CreatePriceListDto) {
     return this.priceListsService.create(user.tenantId, dto);
   }
 
@@ -90,10 +72,7 @@ export class PriceListsController {
     status: 400,
     description: 'Cannot delete price list with items',
   })
-  async delete(
-    @CurrentUser() user: CurrentUserPayload,
-    @Param('id') id: string,
-  ) {
+  async delete(@CurrentUser() user: CurrentUserPayload, @Param('id') id: string) {
     return this.priceListsService.delete(user.tenantId, id);
   }
 
@@ -109,10 +88,7 @@ export class PriceListsController {
     status: 400,
     description: 'Cannot set archived price list as default',
   })
-  async setDefault(
-    @CurrentUser() user: CurrentUserPayload,
-    @Param('id') id: string,
-  ) {
+  async setDefault(@CurrentUser() user: CurrentUserPayload, @Param('id') id: string) {
     return this.priceListsService.setDefault(user.tenantId, id);
   }
 }

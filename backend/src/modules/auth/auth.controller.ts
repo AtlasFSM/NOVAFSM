@@ -3,7 +3,13 @@ import { ApiTags, ApiOperation, ApiBearerAuth, ApiResponse } from '@nestjs/swagg
 import { Request } from 'express';
 import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
-import { RegisterDto, LoginDto, RefreshTokenDto, EnableMfaDto, VerifyMfaDto } from './dto/register.dto';
+import {
+  RegisterDto,
+  LoginDto,
+  RefreshTokenDto,
+  EnableMfaDto,
+  VerifyMfaDto,
+} from './dto/register.dto';
 import { Public } from '../../common/decorators/public.decorator';
 import { CurrentUser, CurrentUserPayload } from '../../common/decorators/current-user.decorator';
 

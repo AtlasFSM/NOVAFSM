@@ -7,7 +7,7 @@ import {
   IsDateString,
   IsArray,
   ValidateNested,
-  ArrayMinSize
+  ArrayMinSize,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { CreateQuoteLineDto } from './quote-line.dto';
@@ -16,7 +16,7 @@ export class CreateQuoteDto {
   @ApiProperty({
     description: 'Customer ID',
     format: 'uuid',
-    example: '123e4567-e89b-12d3-a456-426614174000'
+    example: '123e4567-e89b-12d3-a456-426614174000',
   })
   @IsUUID()
   customerId: string;
@@ -24,7 +24,7 @@ export class CreateQuoteDto {
   @ApiProperty({
     required: false,
     description: 'Site ID if quote is for a specific location',
-    format: 'uuid'
+    format: 'uuid',
   })
   @IsOptional()
   @IsUUID()
@@ -33,7 +33,7 @@ export class CreateQuoteDto {
   @ApiProperty({
     required: false,
     description: 'Quote title/subject',
-    example: 'HVAC System Installation'
+    example: 'HVAC System Installation',
   })
   @IsOptional()
   @IsString()
@@ -42,7 +42,8 @@ export class CreateQuoteDto {
   @ApiProperty({
     required: false,
     description: 'Detailed description of work',
-    example: 'Complete installation of new HVAC system including all necessary ductwork and electrical connections'
+    example:
+      'Complete installation of new HVAC system including all necessary ductwork and electrical connections',
   })
   @IsOptional()
   @IsString()
@@ -52,7 +53,7 @@ export class CreateQuoteDto {
     required: false,
     description: 'Quote currency',
     enum: ['CAD', 'USD'],
-    default: 'CAD'
+    default: 'CAD',
   })
   @IsOptional()
   @IsIn(['CAD', 'USD'])
@@ -61,7 +62,7 @@ export class CreateQuoteDto {
   @ApiProperty({
     required: false,
     description: 'Valid until date (ISO 8601)',
-    example: '2025-12-31T23:59:59Z'
+    example: '2025-12-31T23:59:59Z',
   })
   @IsOptional()
   @IsDateString()
@@ -70,7 +71,7 @@ export class CreateQuoteDto {
   @ApiProperty({
     required: false,
     description: 'Internal notes (not visible to customer)',
-    example: 'Customer requested expedited timeline'
+    example: 'Customer requested expedited timeline',
   })
   @IsOptional()
   @IsString()
@@ -79,7 +80,7 @@ export class CreateQuoteDto {
   @ApiProperty({
     required: false,
     description: 'Terms and conditions text',
-    example: 'Payment due within 30 days. 50% deposit required before work begins.'
+    example: 'Payment due within 30 days. 50% deposit required before work begins.',
   })
   @IsOptional()
   @IsString()
@@ -88,7 +89,7 @@ export class CreateQuoteDto {
   @ApiProperty({
     description: 'Quote line items',
     type: [CreateQuoteLineDto],
-    isArray: true
+    isArray: true,
   })
   @IsArray()
   @ArrayMinSize(1)

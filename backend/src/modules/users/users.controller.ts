@@ -24,10 +24,7 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { Roles } from '../../common/decorators/roles.decorator';
-import {
-  CurrentUser,
-  CurrentUserPayload,
-} from '../../common/decorators/current-user.decorator';
+import { CurrentUser, CurrentUserPayload } from '../../common/decorators/current-user.decorator';
 
 @ApiTags('users')
 @Controller('users')
@@ -115,10 +112,7 @@ export class UsersController {
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden - Insufficient permissions' })
   @ApiResponse({ status: 404, description: 'User not found' })
-  async findOne(
-    @Param('id') id: string,
-    @CurrentUser() user: CurrentUserPayload,
-  ) {
+  async findOne(@Param('id') id: string, @CurrentUser() user: CurrentUserPayload) {
     return this.usersService.findOne(id, user.tenantId);
   }
 
@@ -152,10 +146,7 @@ export class UsersController {
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden - Insufficient permissions' })
   @ApiResponse({ status: 409, description: 'Conflict - User already exists' })
-  async create(
-    @Body() dto: CreateUserDto,
-    @CurrentUser() user: CurrentUserPayload,
-  ) {
+  async create(@Body() dto: CreateUserDto, @CurrentUser() user: CurrentUserPayload) {
     return this.usersService.create(dto, user.tenantId);
   }
 
@@ -218,10 +209,7 @@ export class UsersController {
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden - Insufficient permissions' })
   @ApiResponse({ status: 404, description: 'User not found' })
-  async delete(
-    @Param('id') id: string,
-    @CurrentUser() user: CurrentUserPayload,
-  ) {
+  async delete(@Param('id') id: string, @CurrentUser() user: CurrentUserPayload) {
     return this.usersService.delete(id, user.tenantId);
   }
 
@@ -239,10 +227,7 @@ export class UsersController {
   })
   @ApiResponse({ status: 400, description: 'Bad request - Invalid password' })
   @ApiResponse({ status: 401, description: 'Unauthorized or incorrect current password' })
-  async changePassword(
-    @Body() dto: ChangePasswordDto,
-    @CurrentUser() user: CurrentUserPayload,
-  ) {
+  async changePassword(@Body() dto: ChangePasswordDto, @CurrentUser() user: CurrentUserPayload) {
     return this.usersService.changePassword(user.userId, dto, user.tenantId);
   }
 

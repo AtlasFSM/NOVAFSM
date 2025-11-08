@@ -2,7 +2,10 @@ import { ApiProperty } from '@nestjs/swagger';
 import { IsString, IsEnum, IsUUID, IsNotEmpty } from 'class-validator';
 
 export class PresignUploadDto {
-  @ApiProperty({ description: 'Entity type', enum: ['job', 'invoice', 'quote', 'customer', 'expense'] })
+  @ApiProperty({
+    description: 'Entity type',
+    enum: ['job', 'invoice', 'quote', 'customer', 'expense'],
+  })
   @IsEnum(['job', 'invoice', 'quote', 'customer', 'expense'])
   @IsNotEmpty()
   entity: string;

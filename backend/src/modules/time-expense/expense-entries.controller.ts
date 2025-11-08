@@ -63,10 +63,7 @@ export class ExpenseEntriesController {
   @Post()
   @ApiOperation({ summary: 'Create new expense entry' })
   @ApiResponse({ status: 201, description: 'Expense entry created successfully' })
-  async create(
-    @CurrentUser() user: CurrentUserPayload,
-    @Body() dto: CreateExpenseEntryDto,
-  ) {
+  async create(@CurrentUser() user: CurrentUserPayload, @Body() dto: CreateExpenseEntryDto) {
     return this.expenseEntriesService.create(user.userId, dto);
   }
 
@@ -88,10 +85,7 @@ export class ExpenseEntriesController {
   @ApiResponse({ status: 200, description: 'Expense entry deleted successfully' })
   @ApiResponse({ status: 404, description: 'Expense entry not found' })
   @ApiResponse({ status: 403, description: 'Forbidden - can only delete own entries' })
-  async delete(
-    @Param('id', ParseUUIDPipe) id: string,
-    @CurrentUser() user: CurrentUserPayload,
-  ) {
+  async delete(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: CurrentUserPayload) {
     return this.expenseEntriesService.delete(id, user.userId, user.role);
   }
 }

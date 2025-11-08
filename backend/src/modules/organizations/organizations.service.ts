@@ -165,7 +165,7 @@ export class OrganizationsService {
 
     if (existing._count.users > 0 || existing._count.customers > 0 || existing._count.jobs > 0) {
       throw new BadRequestException(
-        'Cannot delete organization with existing users, customers, or jobs. Set status to INACTIVE instead.'
+        'Cannot delete organization with existing users, customers, or jobs. Set status to INACTIVE instead.',
       );
     }
 

@@ -19,7 +19,9 @@ export class JobCreatedEvent extends DomainEvent {
   ) {
     super(aggregateId);
   }
-  getEventName() { return 'job.created'; }
+  getEventName() {
+    return 'job.created';
+  }
 }
 
 export class JobAssignedEvent extends DomainEvent {
@@ -29,15 +31,24 @@ export class JobAssignedEvent extends DomainEvent {
   ) {
     super(aggregateId);
   }
-  getEventName() { return 'job.assigned'; }
+  getEventName() {
+    return 'job.assigned';
+  }
 }
 
 export class QuoteApprovedEvent extends DomainEvent {
   constructor(
     aggregateId: string,
-    public readonly payload: { quoteId: string; customerId: string; total: number; tenantId: string },
+    public readonly payload: {
+      quoteId: string;
+      customerId: string;
+      total: number;
+      tenantId: string;
+    },
   ) {
     super(aggregateId);
   }
-  getEventName() { return 'quote.approved'; }
+  getEventName() {
+    return 'quote.approved';
+  }
 }

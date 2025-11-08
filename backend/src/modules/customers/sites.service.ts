@@ -1,8 +1,4 @@
-import {
-  Injectable,
-  NotFoundException,
-  BadRequestException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { CreateSiteDto } from './dto/create-site.dto';
 import { UpdateSiteDto } from './dto/update-site.dto';
@@ -21,9 +17,7 @@ export class SitesService {
     });
 
     if (!customer) {
-      throw new NotFoundException(
-        `Customer with ID ${customerId} not found`,
-      );
+      throw new NotFoundException(`Customer with ID ${customerId} not found`);
     }
 
     const sites = await this.prisma.site.findMany({
@@ -92,9 +86,7 @@ export class SitesService {
     });
 
     if (!customer) {
-      throw new BadRequestException(
-        `Customer with ID ${dto.customerId} not found`,
-      );
+      throw new BadRequestException(`Customer with ID ${dto.customerId} not found`);
     }
 
     const site = await this.prisma.site.create({
@@ -191,13 +183,10 @@ export class SitesService {
     }
 
     // Check if site has related records
-    const hasRelatedRecords =
-      site._count.jobs > 0 || site._count.quotes > 0;
+    const hasRelatedRecords = site._count.jobs > 0 || site._count.quotes > 0;
 
     if (hasRelatedRecords) {
-      throw new BadRequestException(
-        'Cannot delete site with existing jobs or quotes',
-      );
+      throw new BadRequestException('Cannot delete site with existing jobs or quotes');
     }
 
     await this.prisma.site.delete({

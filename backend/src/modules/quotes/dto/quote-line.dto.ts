@@ -6,7 +6,7 @@ export class CreateQuoteLineDto {
   @ApiProperty({
     required: false,
     description: 'Reference to PriceItem ID if applicable',
-    format: 'uuid'
+    format: 'uuid',
   })
   @IsOptional()
   @IsUUID()
@@ -15,7 +15,7 @@ export class CreateQuoteLineDto {
   @ApiProperty({
     required: false,
     description: 'SKU/product code',
-    example: 'SVC-001'
+    example: 'SVC-001',
   })
   @IsOptional()
   @IsString()
@@ -23,7 +23,7 @@ export class CreateQuoteLineDto {
 
   @ApiProperty({
     description: 'Line item description',
-    example: 'HVAC Installation Service'
+    example: 'HVAC Installation Service',
   })
   @IsString()
   description: string;
@@ -31,7 +31,7 @@ export class CreateQuoteLineDto {
   @ApiProperty({
     description: 'Quantity',
     example: 2.5,
-    minimum: 0
+    minimum: 0,
   })
   @Type(() => Number)
   @IsNumber({ maxDecimalPlaces: 3 })
@@ -42,7 +42,7 @@ export class CreateQuoteLineDto {
     required: false,
     description: 'Unit of measure',
     example: 'HR',
-    default: 'EA'
+    default: 'EA',
   })
   @IsOptional()
   @IsString()
@@ -50,8 +50,8 @@ export class CreateQuoteLineDto {
 
   @ApiProperty({
     description: 'Unit price',
-    example: 150.00,
-    minimum: 0
+    example: 150.0,
+    minimum: 0,
   })
   @Type(() => Number)
   @IsNumber({ maxDecimalPlaces: 2 })
@@ -61,8 +61,8 @@ export class CreateQuoteLineDto {
   @ApiProperty({
     required: false,
     description: 'Total discounts applied to this line',
-    example: 25.00,
-    default: 0
+    example: 25.0,
+    default: 0,
   })
   @IsOptional()
   @Type(() => Number)
@@ -74,7 +74,7 @@ export class CreateQuoteLineDto {
     required: false,
     description: 'Sort order for display',
     example: 0,
-    default: 0
+    default: 0,
   })
   @IsOptional()
   @Type(() => Number)
@@ -86,7 +86,7 @@ export class UpdateQuoteLineDto {
   @ApiProperty({
     required: false,
     description: 'Reference to PriceItem ID if applicable',
-    format: 'uuid'
+    format: 'uuid',
   })
   @IsOptional()
   @IsUUID()
@@ -95,7 +95,7 @@ export class UpdateQuoteLineDto {
   @ApiProperty({
     required: false,
     description: 'SKU/product code',
-    example: 'SVC-001'
+    example: 'SVC-001',
   })
   @IsOptional()
   @IsString()
@@ -104,7 +104,7 @@ export class UpdateQuoteLineDto {
   @ApiProperty({
     required: false,
     description: 'Line item description',
-    example: 'HVAC Installation Service'
+    example: 'HVAC Installation Service',
   })
   @IsOptional()
   @IsString()
@@ -114,7 +114,7 @@ export class UpdateQuoteLineDto {
     required: false,
     description: 'Quantity',
     example: 2.5,
-    minimum: 0
+    minimum: 0,
   })
   @IsOptional()
   @Type(() => Number)
@@ -125,7 +125,7 @@ export class UpdateQuoteLineDto {
   @ApiProperty({
     required: false,
     description: 'Unit of measure',
-    example: 'HR'
+    example: 'HR',
   })
   @IsOptional()
   @IsString()
@@ -134,8 +134,8 @@ export class UpdateQuoteLineDto {
   @ApiProperty({
     required: false,
     description: 'Unit price',
-    example: 150.00,
-    minimum: 0
+    example: 150.0,
+    minimum: 0,
   })
   @IsOptional()
   @Type(() => Number)
@@ -146,7 +146,7 @@ export class UpdateQuoteLineDto {
   @ApiProperty({
     required: false,
     description: 'Total discounts applied to this line',
-    example: 25.00
+    example: 25.0,
   })
   @IsOptional()
   @Type(() => Number)
@@ -157,7 +157,7 @@ export class UpdateQuoteLineDto {
   @ApiProperty({
     required: false,
     description: 'Sort order for display',
-    example: 0
+    example: 0,
   })
   @IsOptional()
   @Type(() => Number)

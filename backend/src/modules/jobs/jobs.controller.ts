@@ -64,10 +64,7 @@ export class JobsController {
   @ApiQuery({ name: 'to', required: false, description: 'Filter jobs to this date' })
   @ApiQuery({ name: 'page', required: false, description: 'Page number (default: 1)' })
   @ApiQuery({ name: 'limit', required: false, description: 'Items per page (default: 20)' })
-  async findAll(
-    @Query() query: QueryJobsDto,
-    @CurrentUser() user: CurrentUserPayload,
-  ) {
+  async findAll(@Query() query: QueryJobsDto, @CurrentUser() user: CurrentUserPayload) {
     // If technician, only show their own jobs
     if (user.role === 'TECHNICIAN') {
       query.assignedTechnicianId = user.userId;
@@ -85,10 +82,7 @@ export class JobsController {
   @ApiResponse({ status: 200, description: 'Job retrieved successfully' })
   @ApiResponse({ status: 404, description: 'Job not found' })
   @ApiParam({ name: 'id', description: 'Job UUID' })
-  async findOne(
-    @Param('id', ParseUUIDPipe) id: string,
-    @CurrentUser() user: CurrentUserPayload,
-  ) {
+  async findOne(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: CurrentUserPayload) {
     const job = await this.jobsService.findOne(id);
 
     // Technicians can only view their own jobs
@@ -109,10 +103,7 @@ export class JobsController {
   @ApiResponse({ status: 400, description: 'Invalid input' })
   @ApiResponse({ status: 404, description: 'Customer or quote not found' })
   @ApiResponse({ status: 409, description: 'Schedule conflict' })
-  async create(
-    @Body() dto: CreateJobDto,
-    @CurrentUser() user: CurrentUserPayload,
-  ) {
+  async create(@Body() dto: CreateJobDto, @CurrentUser() user: CurrentUserPayload) {
     const job = await this.jobsService.create(dto, user.tenantId);
 
     // Emit WebSocket event if technician was assigned
@@ -201,10 +192,7 @@ export class JobsController {
   @ApiResponse({ status: 400, description: 'Cannot delete completed jobs' })
   @ApiResponse({ status: 404, description: 'Job not found' })
   @ApiParam({ name: 'id', description: 'Job UUID' })
-  async delete(
-    @Param('id', ParseUUIDPipe) id: string,
-    @CurrentUser() user: CurrentUserPayload,
-  ) {
+  async delete(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: CurrentUserPayload) {
     const job = await this.jobsService.findOne(id);
     const result = await this.jobsService.delete(id);
 
@@ -354,7 +342,11 @@ export class JobsController {
   @Roles('ADMIN', 'DISPATCHER', 'TECHNICIAN')
   @ApiOperation({ summary: 'Get technician schedule with conflict detection' })
   @ApiResponse({ status: 200, description: 'Schedule retrieved successfully' })
-  @ApiQuery({ name: 'techId', required: false, description: 'Technician ID (required for admin/dispatcher)' })
+  @ApiQuery({
+    name: 'techId',
+    required: false,
+    description: 'Technician ID (required for admin/dispatcher)',
+  })
   @ApiQuery({ name: 'from', required: true, description: 'Start date (ISO 8601)' })
   @ApiQuery({ name: 'to', required: true, description: 'End date (ISO 8601)' })
   async getSchedule(

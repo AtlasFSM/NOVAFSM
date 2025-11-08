@@ -33,7 +33,7 @@ export interface KanbanItem {
   [key: string]: unknown;
 }
 
-interface KanbanBoardProps<T extends KanbanItem> {
+interface KanbanBoardProps<T extends { id: string }> {
   columns: KanbanColumn<T>[];
   renderItem: (item: T) => React.ReactNode;
   onDragEnd: (itemId: string, fromColumn: string, toColumn: string) => void;
@@ -68,7 +68,7 @@ function SortableItem({ id, children }: SortableItemProps) {
   );
 }
 
-export function KanbanBoard<T extends KanbanItem>({
+export function KanbanBoard<T extends { id: string }>({
   columns,
   renderItem,
   onDragEnd,

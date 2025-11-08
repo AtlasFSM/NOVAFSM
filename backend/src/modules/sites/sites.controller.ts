@@ -55,10 +55,7 @@ export class SitesController {
   @ApiOperation({ summary: 'Get site by ID' })
   @ApiResponse({ status: 200, description: 'Site retrieved successfully' })
   @ApiResponse({ status: 404, description: 'Site not found' })
-  async findOne(
-    @CurrentUser() user: CurrentUserPayload,
-    @Param('id', ParseUUIDPipe) id: string,
-  ) {
+  async findOne(@CurrentUser() user: CurrentUserPayload, @Param('id', ParseUUIDPipe) id: string) {
     return this.sitesService.findOne(user.tenantId, id);
   }
 
@@ -68,10 +65,7 @@ export class SitesController {
   @ApiResponse({ status: 201, description: 'Site created successfully' })
   @ApiResponse({ status: 400, description: 'Bad request - validation failed' })
   @ApiResponse({ status: 404, description: 'Customer not found' })
-  async create(
-    @CurrentUser() user: CurrentUserPayload,
-    @Body() dto: CreateSiteDto,
-  ) {
+  async create(@CurrentUser() user: CurrentUserPayload, @Body() dto: CreateSiteDto) {
     return this.sitesService.create(user.tenantId, dto);
   }
 
@@ -106,10 +100,7 @@ export class SitesController {
   @ApiResponse({ status: 200, description: 'Site deleted successfully' })
   @ApiResponse({ status: 400, description: 'Cannot delete site with associated jobs' })
   @ApiResponse({ status: 404, description: 'Site not found' })
-  async delete(
-    @CurrentUser() user: CurrentUserPayload,
-    @Param('id', ParseUUIDPipe) id: string,
-  ) {
+  async delete(@CurrentUser() user: CurrentUserPayload, @Param('id', ParseUUIDPipe) id: string) {
     return this.sitesService.delete(user.tenantId, id);
   }
 }

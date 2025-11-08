@@ -12,10 +12,10 @@ export class BulkCreatePriceItemDto {
         sku: 'SVC-001',
         name: 'HVAC Service Call',
         unit: 'HR',
-        defaultRate: 125.00,
-        category: 'Labor'
-      }
-    ]
+        defaultRate: 125.0,
+        category: 'Labor',
+      },
+    ],
   })
   @IsArray()
   @ValidateNested({ each: true })

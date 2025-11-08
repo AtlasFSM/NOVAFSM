@@ -46,11 +46,7 @@ export class ScheduleService {
    * Get schedule for a technician within a date range
    * Includes conflict detection
    */
-  async getSchedule(
-    technicianId: string,
-    from: Date,
-    to: Date,
-  ): Promise<TechnicianSchedule> {
+  async getSchedule(technicianId: string, from: Date, to: Date): Promise<TechnicianSchedule> {
     // Get technician details
     const technician = await this.prisma.user.findUnique({
       where: { id: technicianId },
@@ -224,10 +220,7 @@ export class ScheduleService {
     // Sort jobs by start time
     const sortedJobs = [...jobs]
       .filter((j) => j.scheduledStart && j.scheduledEnd)
-      .sort(
-        (a, b) =>
-          (a.scheduledStart?.getTime() || 0) - (b.scheduledStart?.getTime() || 0),
-      );
+      .sort((a, b) => (a.scheduledStart?.getTime() || 0) - (b.scheduledStart?.getTime() || 0));
 
     // Check each pair of adjacent jobs for overlap
     for (let i = 0; i < sortedJobs.length - 1; i++) {

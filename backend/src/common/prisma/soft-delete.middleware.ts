@@ -36,10 +36,7 @@ const SOFT_DELETE_MODELS = [
   'formResponse',
 ];
 
-export const softDeleteMiddleware: Prisma.Middleware = async (
-  params,
-  next,
-) => {
+export const softDeleteMiddleware: Prisma.Middleware = async (params, next) => {
   const model = params.model?.toLowerCase();
 
   // Only apply to models with soft delete support
@@ -141,10 +138,7 @@ export const softDeleteMiddleware: Prisma.Middleware = async (
   }
 
   // Filter out soft-deleted records from aggregate operations
-  if (
-    params.action === 'aggregate' ||
-    params.action === 'groupBy'
-  ) {
+  if (params.action === 'aggregate' || params.action === 'groupBy') {
     if (!params.args) {
       params.args = {};
     }
@@ -220,11 +214,7 @@ export function onlyDeleted<T extends { where?: any }>(args?: T): T {
  * Usage:
  * await hardDelete(prisma, 'customer', { id: 'customer-id' });
  */
-export async function hardDelete(
-  prisma: any,
-  model: string,
-  where: any,
-): Promise<any> {
+export async function hardDelete(prisma: any, model: string, where: any): Promise<any> {
   // Temporarily store the original action
   const modelDelegate = prisma[model];
 

@@ -33,7 +33,11 @@ export class InvoicesController {
   @ApiQuery({ name: 'take', required: false, type: Number })
   @ApiQuery({ name: 'customerId', required: false, type: String })
   @ApiQuery({ name: 'jobId', required: false, type: String })
-  @ApiQuery({ name: 'status', required: false, enum: ['DRAFT', 'SENT', 'PAID', 'OVERDUE', 'CANCELLED'] })
+  @ApiQuery({
+    name: 'status',
+    required: false,
+    enum: ['DRAFT', 'SENT', 'PAID', 'OVERDUE', 'CANCELLED'],
+  })
   async findAll(
     @Query('skip', new ParseIntPipe({ optional: true })) skip?: number,
     @Query('take', new ParseIntPipe({ optional: true })) take?: number,
@@ -87,10 +91,7 @@ export class InvoicesController {
   @ApiOperation({ summary: 'Update invoice' })
   @ApiResponse({ status: 200, description: 'Invoice updated successfully' })
   @ApiResponse({ status: 404, description: 'Invoice not found' })
-  async update(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Body() dto: UpdateInvoiceDto,
-  ) {
+  async update(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateInvoiceDto) {
     return this.invoicesService.update(id, dto);
   }
 
@@ -108,7 +109,7 @@ export class InvoicesController {
   @Roles('ADMIN', 'DISPATCHER')
   @ApiOperation({
     summary: 'Send invoice to customer',
-    description: 'Change invoice status from DRAFT to SENT and send email with PDF attachment'
+    description: 'Change invoice status from DRAFT to SENT and send email with PDF attachment',
   })
   @ApiResponse({ status: 200, description: 'Invoice sent successfully' })
   @ApiResponse({ status: 400, description: 'Only DRAFT invoices can be sent' })

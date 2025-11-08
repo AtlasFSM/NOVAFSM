@@ -60,10 +60,7 @@ export class PdfService {
       doc.on('error', reject);
 
       // Header
-      doc
-        .fontSize(24)
-        .font('Helvetica-Bold')
-        .text('QUOTATION', 50, 50);
+      doc.fontSize(24).font('Helvetica-Bold').text('QUOTATION', 50, 50);
 
       doc
         .fontSize(10)
@@ -86,10 +83,7 @@ export class PdfService {
       }
 
       // Customer info
-      doc
-        .fontSize(12)
-        .font('Helvetica-Bold')
-        .text('Bill To:', 50, 170);
+      doc.fontSize(12).font('Helvetica-Bold').text('Bill To:', 50, 170);
 
       doc
         .fontSize(10)
@@ -101,17 +95,11 @@ export class PdfService {
 
       // Title and description
       if (data.title) {
-        doc
-          .fontSize(14)
-          .font('Helvetica-Bold')
-          .text(data.title, 50, 280);
+        doc.fontSize(14).font('Helvetica-Bold').text(data.title, 50, 280);
       }
 
       if (data.description) {
-        doc
-          .fontSize(10)
-          .font('Helvetica')
-          .text(data.description, 50, 300, { width: 500 });
+        doc.fontSize(10).font('Helvetica').text(data.description, 50, 300, { width: 500 });
       }
 
       // Line items table
@@ -142,8 +130,14 @@ export class PdfService {
           .font('Helvetica')
           .text(item.description, 50, yPosition, { width: 240 })
           .text(item.quantity.toString(), 300, yPosition, { width: 50, align: 'right' })
-          .text(this.formatCurrency(item.unitPrice, data.currency), 360, yPosition, { width: 80, align: 'right' })
-          .text(this.formatCurrency(item.total, data.currency), 450, yPosition, { width: 100, align: 'right' });
+          .text(this.formatCurrency(item.unitPrice, data.currency), 360, yPosition, {
+            width: 80,
+            align: 'right',
+          })
+          .text(this.formatCurrency(item.total, data.currency), 450, yPosition, {
+            width: 100,
+            align: 'right',
+          });
 
         yPosition += 25;
       });
@@ -156,19 +150,28 @@ export class PdfService {
         .fontSize(10)
         .font('Helvetica')
         .text('Subtotal:', totalsX, yPosition)
-        .text(this.formatCurrency(data.subtotal, data.currency), 450, yPosition, { width: 100, align: 'right' });
+        .text(this.formatCurrency(data.subtotal, data.currency), 450, yPosition, {
+          width: 100,
+          align: 'right',
+        });
 
       yPosition += 20;
       doc
         .text('Tax:', totalsX, yPosition)
-        .text(this.formatCurrency(data.taxTotal, data.currency), 450, yPosition, { width: 100, align: 'right' });
+        .text(this.formatCurrency(data.taxTotal, data.currency), 450, yPosition, {
+          width: 100,
+          align: 'right',
+        });
 
       if (data.discount > 0) {
         yPosition += 20;
         doc
           .fillColor('#10b981')
           .text('Discount:', totalsX, yPosition)
-          .text(`-${this.formatCurrency(data.discount, data.currency)}`, 450, yPosition, { width: 100, align: 'right' })
+          .text(`-${this.formatCurrency(data.discount, data.currency)}`, 450, yPosition, {
+            width: 100,
+            align: 'right',
+          })
           .fillColor('#000000');
       }
 
@@ -186,19 +189,17 @@ export class PdfService {
         .fontSize(12)
         .font('Helvetica-Bold')
         .text('Total:', totalsX, yPosition)
-        .text(this.formatCurrency(data.total, data.currency), 450, yPosition, { width: 100, align: 'right' });
+        .text(this.formatCurrency(data.total, data.currency), 450, yPosition, {
+          width: 100,
+          align: 'right',
+        });
 
       // Notes
       if (data.notes) {
         yPosition += 40;
-        doc
-          .fontSize(10)
-          .font('Helvetica-Bold')
-          .text('Notes:', 50, yPosition);
+        doc.fontSize(10).font('Helvetica-Bold').text('Notes:', 50, yPosition);
 
-        doc
-          .font('Helvetica')
-          .text(data.notes, 50, yPosition + 15, { width: 500 });
+        doc.font('Helvetica').text(data.notes, 50, yPosition + 15, { width: 500 });
       }
 
       // Footer
@@ -232,17 +233,9 @@ export class PdfService {
         .fillColor('#000000');
 
       if (data.status === 'PAID') {
-        doc
-          .fontSize(14)
-          .fillColor('#10b981')
-          .text('PAID', 150, 58)
-          .fillColor('#000000');
+        doc.fontSize(14).fillColor('#10b981').text('PAID', 150, 58).fillColor('#000000');
       } else if (data.status === 'OVERDUE') {
-        doc
-          .fontSize(14)
-          .fillColor('#ef4444')
-          .text('OVERDUE', 150, 58)
-          .fillColor('#000000');
+        doc.fontSize(14).fillColor('#ef4444').text('OVERDUE', 150, 58).fillColor('#000000');
       }
 
       doc
@@ -273,10 +266,7 @@ export class PdfService {
       }
 
       // Customer info
-      doc
-        .fontSize(12)
-        .font('Helvetica-Bold')
-        .text('Bill To:', 50, 170);
+      doc.fontSize(12).font('Helvetica-Bold').text('Bill To:', 50, 170);
 
       doc
         .fontSize(10)
@@ -288,17 +278,11 @@ export class PdfService {
 
       // Title and description
       if (data.title) {
-        doc
-          .fontSize(14)
-          .font('Helvetica-Bold')
-          .text(data.title, 50, 280);
+        doc.fontSize(14).font('Helvetica-Bold').text(data.title, 50, 280);
       }
 
       if (data.description) {
-        doc
-          .fontSize(10)
-          .font('Helvetica')
-          .text(data.description, 50, 300, { width: 500 });
+        doc.fontSize(10).font('Helvetica').text(data.description, 50, 300, { width: 500 });
       }
 
       // Line items table
@@ -329,8 +313,14 @@ export class PdfService {
           .font('Helvetica')
           .text(item.description, 50, yPosition, { width: 240 })
           .text(item.quantity.toString(), 300, yPosition, { width: 50, align: 'right' })
-          .text(this.formatCurrency(item.unitPrice, data.currency), 360, yPosition, { width: 80, align: 'right' })
-          .text(this.formatCurrency(item.total, data.currency), 450, yPosition, { width: 100, align: 'right' });
+          .text(this.formatCurrency(item.unitPrice, data.currency), 360, yPosition, {
+            width: 80,
+            align: 'right',
+          })
+          .text(this.formatCurrency(item.total, data.currency), 450, yPosition, {
+            width: 100,
+            align: 'right',
+          });
 
         yPosition += 25;
       });
@@ -343,19 +333,28 @@ export class PdfService {
         .fontSize(10)
         .font('Helvetica')
         .text('Subtotal:', totalsX, yPosition)
-        .text(this.formatCurrency(data.subtotal, data.currency), 450, yPosition, { width: 100, align: 'right' });
+        .text(this.formatCurrency(data.subtotal, data.currency), 450, yPosition, {
+          width: 100,
+          align: 'right',
+        });
 
       yPosition += 20;
       doc
         .text('Tax:', totalsX, yPosition)
-        .text(this.formatCurrency(data.taxTotal, data.currency), 450, yPosition, { width: 100, align: 'right' });
+        .text(this.formatCurrency(data.taxTotal, data.currency), 450, yPosition, {
+          width: 100,
+          align: 'right',
+        });
 
       if (data.discount > 0) {
         yPosition += 20;
         doc
           .fillColor('#10b981')
           .text('Discount:', totalsX, yPosition)
-          .text(`-${this.formatCurrency(data.discount, data.currency)}`, 450, yPosition, { width: 100, align: 'right' })
+          .text(`-${this.formatCurrency(data.discount, data.currency)}`, 450, yPosition, {
+            width: 100,
+            align: 'right',
+          })
           .fillColor('#000000');
       }
 
@@ -373,32 +372,25 @@ export class PdfService {
         .fontSize(12)
         .font('Helvetica-Bold')
         .text('Amount Due:', totalsX, yPosition)
-        .text(this.formatCurrency(data.total, data.currency), 450, yPosition, { width: 100, align: 'right' });
+        .text(this.formatCurrency(data.total, data.currency), 450, yPosition, {
+          width: 100,
+          align: 'right',
+        });
 
       // Payment instructions
       if (data.paymentInstructions) {
         yPosition += 40;
-        doc
-          .fontSize(10)
-          .font('Helvetica-Bold')
-          .text('Payment Instructions:', 50, yPosition);
+        doc.fontSize(10).font('Helvetica-Bold').text('Payment Instructions:', 50, yPosition);
 
-        doc
-          .font('Helvetica')
-          .text(data.paymentInstructions, 50, yPosition + 15, { width: 500 });
+        doc.font('Helvetica').text(data.paymentInstructions, 50, yPosition + 15, { width: 500 });
       }
 
       // Notes
       if (data.notes) {
         yPosition += 60;
-        doc
-          .fontSize(10)
-          .font('Helvetica-Bold')
-          .text('Notes:', 50, yPosition);
+        doc.fontSize(10).font('Helvetica-Bold').text('Notes:', 50, yPosition);
 
-        doc
-          .font('Helvetica')
-          .text(data.notes, 50, yPosition + 15, { width: 500 });
+        doc.font('Helvetica').text(data.notes, 50, yPosition + 15, { width: 500 });
       }
 
       // Footer

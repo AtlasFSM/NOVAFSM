@@ -18,11 +18,7 @@ export class PriceItemsService {
   /**
    * Find all price items for a price list with optional filters
    */
-  async findAll(
-    tenantId: string,
-    priceListId: string,
-    query: QueryPriceItemDto,
-  ) {
+  async findAll(tenantId: string, priceListId: string, query: QueryPriceItemDto) {
     // Verify price list exists and belongs to tenant
     const priceList = await this.prisma.priceList.findFirst({
       where: { id: priceListId, tenantId },
@@ -112,9 +108,7 @@ export class PriceItemsService {
     });
 
     if (!priceList) {
-      throw new NotFoundException(
-        `Price list with ID ${dto.priceListId} not found`,
-      );
+      throw new NotFoundException(`Price list with ID ${dto.priceListId} not found`);
     }
 
     // Check unique constraint: (tenantId, priceListId, sku)
@@ -250,9 +244,7 @@ export class PriceItemsService {
     if (priceLists.length !== priceListIds.length) {
       const foundIds = priceLists.map((pl) => pl.id);
       const missingIds = priceListIds.filter((id) => !foundIds.includes(id));
-      throw new NotFoundException(
-        `Price lists not found: ${missingIds.join(', ')}`,
-      );
+      throw new NotFoundException(`Price lists not found: ${missingIds.join(', ')}`);
     }
 
     // Check for duplicate SKUs within the request
@@ -267,9 +259,7 @@ export class PriceItemsService {
       .map(([key]) => key);
 
     if (duplicates.length > 0) {
-      throw new BadRequestException(
-        `Duplicate SKUs in request: ${duplicates.join(', ')}`,
-      );
+      throw new BadRequestException(`Duplicate SKUs in request: ${duplicates.join(', ')}`);
     }
 
     // Check for existing SKUs in database
@@ -288,12 +278,8 @@ export class PriceItemsService {
     });
 
     if (existingItems.length > 0) {
-      const conflicts = existingItems.map(
-        (item) => `${item.priceListId}:${item.sku}`,
-      );
-      throw new ConflictException(
-        `SKUs already exist in database: ${conflicts.join(', ')}`,
-      );
+      const conflicts = existingItems.map((item) => `${item.priceListId}:${item.sku}`);
+      throw new ConflictException(`SKUs already exist in database: ${conflicts.join(', ')}`);
     }
 
     // Create all items in a transaction

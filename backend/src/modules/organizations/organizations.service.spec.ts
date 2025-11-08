@@ -5,7 +5,13 @@ import { PrismaService } from '../prisma/prisma.service';
 describe('OrganizationsService', () => {
   let service: OrganizationsService;
   const mockPrisma = {
-    organization: { create: jest.fn(), findMany: jest.fn(), findUnique: jest.fn(), update: jest.fn(), count: jest.fn() },
+    organization: {
+      create: jest.fn(),
+      findMany: jest.fn(),
+      findUnique: jest.fn(),
+      update: jest.fn(),
+      count: jest.fn(),
+    },
   };
 
   beforeEach(async () => {
@@ -18,7 +24,11 @@ describe('OrganizationsService', () => {
   it('should be defined', () => expect(service).toBeDefined());
 
   it('should create organization', async () => {
-    mockPrisma.organization.create.mockResolvedValue({ id: 'org1', name: 'Acme Corp', slug: 'acme' });
+    mockPrisma.organization.create.mockResolvedValue({
+      id: 'org1',
+      name: 'Acme Corp',
+      slug: 'acme',
+    });
     const result = await service.create({ name: 'Acme Corp', slug: 'acme' });
     expect(result.slug).toBe('acme');
   });

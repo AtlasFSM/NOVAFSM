@@ -134,9 +134,9 @@ describe('EmailService', () => {
       mockPdfService.generateQuotePdf.mockResolvedValue(Buffer.from('PDF'));
       mockTransporter.sendMail.mockRejectedValue(new Error('SMTP error'));
 
-      await expect(
-        service.sendQuoteEmail('test@test.com', 'Test', quoteData),
-      ).rejects.toThrow('SMTP error');
+      await expect(service.sendQuoteEmail('test@test.com', 'Test', quoteData)).rejects.toThrow(
+        'SMTP error',
+      );
     });
   });
 

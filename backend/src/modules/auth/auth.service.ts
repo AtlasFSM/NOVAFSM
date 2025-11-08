@@ -66,7 +66,12 @@ export class AuthService {
     });
 
     // Generate tokens
-    const tokens = await this.generateTokens(result.user.id, result.org.id, dto.email, result.user.role);
+    const tokens = await this.generateTokens(
+      result.user.id,
+      result.org.id,
+      dto.email,
+      result.user.role,
+    );
 
     // Save hashed refresh token
     await this.saveRefreshToken(result.user.id, tokens.refreshToken);

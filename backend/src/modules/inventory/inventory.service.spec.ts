@@ -5,7 +5,13 @@ import { PrismaService } from '../prisma/prisma.service';
 describe('InventoryService', () => {
   let service: InventoryService;
   const mockPrisma = {
-    inventoryItem: { create: jest.fn(), findMany: jest.fn(), findFirst: jest.fn(), update: jest.fn(), count: jest.fn() },
+    inventoryItem: {
+      create: jest.fn(),
+      findMany: jest.fn(),
+      findFirst: jest.fn(),
+      update: jest.fn(),
+      count: jest.fn(),
+    },
   };
 
   beforeEach(async () => {

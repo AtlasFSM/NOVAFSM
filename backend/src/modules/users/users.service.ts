@@ -276,11 +276,7 @@ export class UsersService {
    * Change user password
    * User can change their own password with current password verification
    */
-  async changePassword(
-    userId: string,
-    dto: ChangePasswordDto,
-    tenantId: string,
-  ) {
+  async changePassword(userId: string, dto: ChangePasswordDto, tenantId: string) {
     // Set tenant context for this request
     this.prisma.setTenantId(tenantId);
 
@@ -298,10 +294,7 @@ export class UsersService {
     }
 
     // Verify current password
-    const isPasswordValid = await bcrypt.compare(
-      dto.currentPassword,
-      user.password,
-    );
+    const isPasswordValid = await bcrypt.compare(dto.currentPassword, user.password);
 
     if (!isPasswordValid) {
       throw new UnauthorizedException('Current password is incorrect');
@@ -311,9 +304,7 @@ export class UsersService {
     const isSamePassword = await bcrypt.compare(dto.newPassword, user.password);
 
     if (isSamePassword) {
-      throw new BadRequestException(
-        'New password must be different from current password',
-      );
+      throw new BadRequestException('New password must be different from current password');
     }
 
     // Hash new password
@@ -354,9 +345,7 @@ export class UsersService {
 
     // Validate password length
     if (newPassword.length < 8) {
-      throw new BadRequestException(
-        'Password must be at least 8 characters long',
-      );
+      throw new BadRequestException('Password must be at least 8 characters long');
     }
 
     // Hash new password

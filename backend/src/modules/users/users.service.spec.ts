@@ -5,7 +5,14 @@ import { PrismaService } from '../../common/prisma/prisma.service';
 describe('UsersService', () => {
   let service: UsersService;
   const mockPrisma = {
-    user: { create: jest.fn(), findMany: jest.fn(), findFirst: jest.fn(), findUnique: jest.fn(), update: jest.fn(), count: jest.fn() },
+    user: {
+      create: jest.fn(),
+      findMany: jest.fn(),
+      findFirst: jest.fn(),
+      findUnique: jest.fn(),
+      update: jest.fn(),
+      count: jest.fn(),
+    },
   };
 
   beforeEach(async () => {
@@ -17,10 +24,20 @@ describe('UsersService', () => {
 
   it('should be defined', () => expect(service).toBeDefined());
   it('should create user', async () => {
-    mockPrisma.user.create.mockResolvedValue({ id: '1', email: 'test@test.com', role: 'TECHNICIAN' });
+    mockPrisma.user.create.mockResolvedValue({
+      id: '1',
+      email: 'test@test.com',
+      role: 'TECHNICIAN',
+    });
     const result = await service.create(
-      { email: 'test@test.com', password: 'hashed', firstName: 'Test', lastName: 'User', role: 'TECHNICIAN' },
-      't1'
+      {
+        email: 'test@test.com',
+        password: 'hashed',
+        firstName: 'Test',
+        lastName: 'User',
+        role: 'TECHNICIAN',
+      },
+      't1',
     );
     expect(result.success).toBe(true);
     expect(result.data.email).toBe('test@test.com');

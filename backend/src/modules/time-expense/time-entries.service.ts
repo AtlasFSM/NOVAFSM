@@ -297,12 +297,15 @@ export class TimeEntriesService {
       },
     });
 
-    const totalByType = entries.reduce((acc, entry) => {
-      if (entry.duration) {
-        acc[entry.type] = (acc[entry.type] || 0) + entry.duration;
-      }
-      return acc;
-    }, {} as Record<string, number>);
+    const totalByType = entries.reduce(
+      (acc, entry) => {
+        if (entry.duration) {
+          acc[entry.type] = (acc[entry.type] || 0) + entry.duration;
+        }
+        return acc;
+      },
+      {} as Record<string, number>,
+    );
 
     const totalMinutes = Object.values(totalByType).reduce((sum, val) => sum + val, 0);
 

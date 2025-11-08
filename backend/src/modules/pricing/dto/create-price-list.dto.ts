@@ -21,7 +21,12 @@ export class CreatePriceListDto {
   @IsBoolean()
   isDefault?: boolean;
 
-  @ApiProperty({ example: 'ACTIVE', enum: ['ACTIVE', 'ARCHIVED'], default: 'ACTIVE', required: false })
+  @ApiProperty({
+    example: 'ACTIVE',
+    enum: ['ACTIVE', 'ARCHIVED'],
+    default: 'ACTIVE',
+    required: false,
+  })
   @IsOptional()
   @IsIn(['ACTIVE', 'ARCHIVED'])
   status?: string;

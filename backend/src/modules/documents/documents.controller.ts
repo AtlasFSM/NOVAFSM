@@ -12,7 +12,11 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { DocumentsService } from './documents.service';
-import { UploadDocumentDto, GetPresignedUrlDto, CreateDocumentVersionDto } from './dto/upload-document.dto';
+import {
+  UploadDocumentDto,
+  GetPresignedUrlDto,
+  CreateDocumentVersionDto,
+} from './dto/upload-document.dto';
 import { UpdateDocumentDto } from './dto/update-document.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';

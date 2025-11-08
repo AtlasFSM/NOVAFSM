@@ -23,7 +23,7 @@ export class UpdatePriceItemDto {
   @IsIn(['EA', 'HR', 'KM'])
   unit?: string;
 
-  @ApiProperty({ example: 125.00, required: false })
+  @ApiProperty({ example: 125.0, required: false })
   @IsOptional()
   @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0)

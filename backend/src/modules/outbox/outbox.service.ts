@@ -15,11 +15,7 @@ export class OutboxService {
    * Create outbox event
    * Should be called within a transaction to ensure atomicity
    */
-  async create(params: {
-    eventName: string;
-    payload: any;
-    tenantId?: string;
-  }) {
+  async create(params: { eventName: string; payload: any; tenantId?: string }) {
     const tenantId = params.tenantId || this.prisma.getTenantId();
 
     if (!tenantId) {

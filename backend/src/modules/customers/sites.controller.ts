@@ -1,14 +1,4 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Put,
-  Delete,
-  Body,
-  Param,
-  Query,
-  UseGuards,
-} from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
@@ -38,10 +28,7 @@ export class SitesController {
   @ApiResponse({ status: 200, description: 'Sites retrieved successfully' })
   @ApiResponse({ status: 404, description: 'Customer not found' })
   @ApiResponse({ status: 403, description: 'Forbidden' })
-  async findAll(
-    @CurrentUser() user: CurrentUserPayload,
-    @Query('customerId') customerId: string,
-  ) {
+  async findAll(@CurrentUser() user: CurrentUserPayload, @Query('customerId') customerId: string) {
     return this.sitesService.findAll(user.tenantId, customerId);
   }
 
@@ -52,10 +39,7 @@ export class SitesController {
   @ApiResponse({ status: 200, description: 'Site retrieved successfully' })
   @ApiResponse({ status: 404, description: 'Site not found' })
   @ApiResponse({ status: 403, description: 'Forbidden' })
-  async findOne(
-    @CurrentUser() user: CurrentUserPayload,
-    @Param('id') id: string,
-  ) {
+  async findOne(@CurrentUser() user: CurrentUserPayload, @Param('id') id: string) {
     return this.sitesService.findOne(user.tenantId, id);
   }
 
@@ -65,10 +49,7 @@ export class SitesController {
   @ApiResponse({ status: 201, description: 'Site created successfully' })
   @ApiResponse({ status: 400, description: 'Bad request' })
   @ApiResponse({ status: 403, description: 'Forbidden' })
-  async create(
-    @CurrentUser() user: CurrentUserPayload,
-    @Body() dto: CreateSiteDto,
-  ) {
+  async create(@CurrentUser() user: CurrentUserPayload, @Body() dto: CreateSiteDto) {
     return this.sitesService.create(user.tenantId, dto);
   }
 
@@ -96,10 +77,7 @@ export class SitesController {
   @ApiResponse({ status: 404, description: 'Site not found' })
   @ApiResponse({ status: 400, description: 'Cannot delete site with related records' })
   @ApiResponse({ status: 403, description: 'Forbidden' })
-  async delete(
-    @CurrentUser() user: CurrentUserPayload,
-    @Param('id') id: string,
-  ) {
+  async delete(@CurrentUser() user: CurrentUserPayload, @Param('id') id: string) {
     return this.sitesService.delete(user.tenantId, id);
   }
 }

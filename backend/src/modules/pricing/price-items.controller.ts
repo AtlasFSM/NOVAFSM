@@ -1,30 +1,11 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Put,
-  Delete,
-  Body,
-  Param,
-  Query,
-  UseGuards,
-} from '@nestjs/common';
-import {
-  ApiTags,
-  ApiOperation,
-  ApiBearerAuth,
-  ApiResponse,
-  ApiParam,
-} from '@nestjs/swagger';
+import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiResponse, ApiParam } from '@nestjs/swagger';
 import { PriceItemsService } from './price-items.service';
 import { CreatePriceItemDto } from './dto/create-price-item.dto';
 import { UpdatePriceItemDto } from './dto/update-price-item.dto';
 import { QueryPriceItemDto } from './dto/query-price-item.dto';
 import { BulkCreatePriceItemDto } from './dto/bulk-create-price-item.dto';
-import {
-  CurrentUser,
-  CurrentUserPayload,
-} from '../../common/decorators/current-user.decorator';
+import { CurrentUser, CurrentUserPayload } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
 
 @ApiTags('pricing/price-items')
@@ -52,10 +33,7 @@ export class PriceItemsController {
   @ApiParam({ name: 'id', description: 'Price item ID' })
   @ApiResponse({ status: 200, description: 'Price item retrieved successfully' })
   @ApiResponse({ status: 404, description: 'Price item not found' })
-  async findOne(
-    @CurrentUser() user: CurrentUserPayload,
-    @Param('id') id: string,
-  ) {
+  async findOne(@CurrentUser() user: CurrentUserPayload, @Param('id') id: string) {
     return this.priceItemsService.findOne(user.tenantId, id);
   }
 
@@ -67,10 +45,7 @@ export class PriceItemsController {
     status: 409,
     description: 'Price item SKU already exists in this price list',
   })
-  async create(
-    @CurrentUser() user: CurrentUserPayload,
-    @Body() dto: CreatePriceItemDto,
-  ) {
+  async create(@CurrentUser() user: CurrentUserPayload, @Body() dto: CreatePriceItemDto) {
     return this.priceItemsService.create(user.tenantId, dto);
   }
 
@@ -86,10 +61,7 @@ export class PriceItemsController {
     status: 400,
     description: 'Duplicate SKUs in request',
   })
-  async bulkCreate(
-    @CurrentUser() user: CurrentUserPayload,
-    @Body() dto: BulkCreatePriceItemDto,
-  ) {
+  async bulkCreate(@CurrentUser() user: CurrentUserPayload, @Body() dto: BulkCreatePriceItemDto) {
     return this.priceItemsService.bulkCreate(user.tenantId, dto);
   }
 
@@ -115,10 +87,7 @@ export class PriceItemsController {
   @ApiParam({ name: 'id', description: 'Price item ID' })
   @ApiResponse({ status: 200, description: 'Price item deleted successfully' })
   @ApiResponse({ status: 404, description: 'Price item not found' })
-  async delete(
-    @CurrentUser() user: CurrentUserPayload,
-    @Param('id') id: string,
-  ) {
+  async delete(@CurrentUser() user: CurrentUserPayload, @Param('id') id: string) {
     return this.priceItemsService.delete(user.tenantId, id);
   }
 }

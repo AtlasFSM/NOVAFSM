@@ -44,7 +44,9 @@ export class JobsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   async handleConnection(client: Socket) {
     try {
       // Extract JWT token from handshake auth
-      const token = client.handshake.auth?.token || client.handshake.headers?.authorization?.replace('Bearer ', '');
+      const token =
+        client.handshake.auth?.token ||
+        client.handshake.headers?.authorization?.replace('Bearer ', '');
 
       if (!token) {
         this.logger.warn(`Client ${client.id} attempted to connect without token`);
@@ -89,10 +91,7 @@ export class JobsGateway implements OnGatewayConnection, OnGatewayDisconnect {
    * Subscribe to job updates for a specific job
    */
   @SubscribeMessage('job.subscribe')
-  handleSubscribeJob(
-    @ConnectedSocket() client: Socket,
-    @MessageBody() data: { jobId: string },
-  ) {
+  handleSubscribeJob(@ConnectedSocket() client: Socket, @MessageBody() data: { jobId: string }) {
     const { jobId } = data;
     client.join(`job:${jobId}`);
     this.logger.log(`Client ${client.id} subscribed to job ${jobId}`);
@@ -103,10 +102,7 @@ export class JobsGateway implements OnGatewayConnection, OnGatewayDisconnect {
    * Unsubscribe from job updates
    */
   @SubscribeMessage('job.unsubscribe')
-  handleUnsubscribeJob(
-    @ConnectedSocket() client: Socket,
-    @MessageBody() data: { jobId: string },
-  ) {
+  handleUnsubscribeJob(@ConnectedSocket() client: Socket, @MessageBody() data: { jobId: string }) {
     const { jobId } = data;
     client.leave(`job:${jobId}`);
     this.logger.log(`Client ${client.id} unsubscribed from job ${jobId}`);

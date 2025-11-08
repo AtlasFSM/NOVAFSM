@@ -5,7 +5,13 @@ import { PrismaService } from '../prisma/prisma.service';
 describe('InvoicesService', () => {
   let service: InvoicesService;
   const mockPrisma = {
-    invoice: { create: jest.fn(), findMany: jest.fn(), findFirst: jest.fn(), update: jest.fn(), count: jest.fn() },
+    invoice: {
+      create: jest.fn(),
+      findMany: jest.fn(),
+      findFirst: jest.fn(),
+      update: jest.fn(),
+      count: jest.fn(),
+    },
     job: { findFirst: jest.fn() },
   };
 
@@ -26,7 +32,10 @@ describe('InvoicesService', () => {
   });
 
   it('should calculate total amount', async () => {
-    mockPrisma.invoice.findFirst.mockResolvedValue({ id: 'inv1', lineItems: [{ amount: 100 }, { amount: 50 }] });
+    mockPrisma.invoice.findFirst.mockResolvedValue({
+      id: 'inv1',
+      lineItems: [{ amount: 100 }, { amount: 50 }],
+    });
     const result = await service.findOne('t1', 'inv1');
     expect(result).toBeDefined();
   });

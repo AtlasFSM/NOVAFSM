@@ -49,7 +49,8 @@ export class QuotesController {
   @Roles('ADMIN', 'DISPATCHER')
   @ApiOperation({
     summary: 'List all quotes',
-    description: 'Get paginated list of quotes with optional filters for status, customer, date range, and search',
+    description:
+      'Get paginated list of quotes with optional filters for status, customer, date range, and search',
   })
   @ApiResponse({
     status: 200,
@@ -77,10 +78,7 @@ export class QuotesController {
   })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden - insufficient permissions' })
-  async findAll(
-    @CurrentUser() user: CurrentUserPayload,
-    @Query() query: QueryQuotesDto,
-  ) {
+  async findAll(@CurrentUser() user: CurrentUserPayload, @Query() query: QueryQuotesDto) {
     return this.quotesService.findAll(user.tenantId, query);
   }
 
@@ -101,10 +99,7 @@ export class QuotesController {
   })
   @ApiResponse({ status: 200, description: 'Quote retrieved successfully' })
   @ApiResponse({ status: 404, description: 'Quote not found' })
-  async findOne(
-    @CurrentUser() user: CurrentUserPayload,
-    @Param('id', ParseUUIDPipe) id: string,
-  ) {
+  async findOne(@CurrentUser() user: CurrentUserPayload, @Param('id', ParseUUIDPipe) id: string) {
     return this.quotesService.findOne(user.tenantId, id);
   }
 
@@ -115,7 +110,8 @@ export class QuotesController {
   @Roles('ADMIN', 'DISPATCHER')
   @ApiOperation({
     summary: 'Create new quote',
-    description: 'Create a new quote with line items. Auto-generates quote number (Q-YYYY-######) and calculates totals including taxes based on customer location.',
+    description:
+      'Create a new quote with line items. Auto-generates quote number (Q-YYYY-######) and calculates totals including taxes based on customer location.',
   })
   @ApiResponse({
     status: 201,
@@ -123,10 +119,7 @@ export class QuotesController {
   })
   @ApiResponse({ status: 400, description: 'Bad request - validation failed' })
   @ApiResponse({ status: 404, description: 'Customer or site not found' })
-  async create(
-    @CurrentUser() user: CurrentUserPayload,
-    @Body() dto: CreateQuoteDto,
-  ) {
+  async create(@CurrentUser() user: CurrentUserPayload, @Body() dto: CreateQuoteDto) {
     return this.quotesService.create(user.tenantId, user.userId, dto);
   }
 
@@ -137,7 +130,8 @@ export class QuotesController {
   @Roles('ADMIN', 'DISPATCHER')
   @ApiOperation({
     summary: 'Update quote',
-    description: 'Update quote details and/or lines. Supports optimistic locking via If-Match header. Recalculates totals if lines are modified. Only DRAFT and SENT quotes can be updated.',
+    description:
+      'Update quote details and/or lines. Supports optimistic locking via If-Match header. Recalculates totals if lines are modified. Only DRAFT and SENT quotes can be updated.',
   })
   @ApiParam({
     name: 'id',
@@ -180,7 +174,8 @@ export class QuotesController {
   @HttpCode(200)
   @ApiOperation({
     summary: 'Delete quote',
-    description: 'Delete a quote. Only DRAFT quotes can be deleted. For other statuses, consider marking as EXPIRED instead.',
+    description:
+      'Delete a quote. Only DRAFT quotes can be deleted. For other statuses, consider marking as EXPIRED instead.',
   })
   @ApiParam({
     name: 'id',
@@ -201,10 +196,7 @@ export class QuotesController {
   })
   @ApiResponse({ status: 400, description: 'Bad request - only DRAFT quotes can be deleted' })
   @ApiResponse({ status: 404, description: 'Quote not found' })
-  async delete(
-    @CurrentUser() user: CurrentUserPayload,
-    @Param('id', ParseUUIDPipe) id: string,
-  ) {
+  async delete(@CurrentUser() user: CurrentUserPayload, @Param('id', ParseUUIDPipe) id: string) {
     return this.quotesService.delete(user.tenantId, id);
   }
 
@@ -216,7 +208,8 @@ export class QuotesController {
   @HttpCode(200)
   @ApiOperation({
     summary: 'Send quote to customer',
-    description: 'Change quote status from DRAFT to SENT. Records sent timestamp. Only DRAFT quotes can be sent.',
+    description:
+      'Change quote status from DRAFT to SENT. Records sent timestamp. Only DRAFT quotes can be sent.',
   })
   @ApiParam({
     name: 'id',
@@ -227,10 +220,7 @@ export class QuotesController {
   @ApiResponse({ status: 200, description: 'Quote sent successfully' })
   @ApiResponse({ status: 400, description: 'Bad request - only DRAFT quotes can be sent' })
   @ApiResponse({ status: 404, description: 'Quote not found' })
-  async send(
-    @CurrentUser() user: CurrentUserPayload,
-    @Param('id', ParseUUIDPipe) id: string,
-  ) {
+  async send(@CurrentUser() user: CurrentUserPayload, @Param('id', ParseUUIDPipe) id: string) {
     return this.quotesService.send(user.tenantId, id);
   }
 
@@ -242,7 +232,8 @@ export class QuotesController {
   @HttpCode(200)
   @ApiOperation({
     summary: 'Approve quote',
-    description: 'Change quote status from SENT to APPROVED. Records approval timestamp and approver. Only SENT quotes can be approved.',
+    description:
+      'Change quote status from SENT to APPROVED. Records approval timestamp and approver. Only SENT quotes can be approved.',
   })
   @ApiParam({
     name: 'id',
@@ -269,7 +260,8 @@ export class QuotesController {
   @HttpCode(200)
   @ApiOperation({
     summary: 'Reject quote',
-    description: 'Change quote status from SENT to REJECTED. Records rejection timestamp and reason. Only SENT quotes can be rejected.',
+    description:
+      'Change quote status from SENT to REJECTED. Records rejection timestamp and reason. Only SENT quotes can be rejected.',
   })
   @ApiParam({
     name: 'id',
@@ -296,7 +288,8 @@ export class QuotesController {
   @HttpCode(200)
   @ApiOperation({
     summary: 'Expire quote',
-    description: 'Manually mark a quote as EXPIRED. DRAFT and SENT quotes can be expired. Quotes past their validUntil date are automatically expired by a background job.',
+    description:
+      'Manually mark a quote as EXPIRED. DRAFT and SENT quotes can be expired. Quotes past their validUntil date are automatically expired by a background job.',
   })
   @ApiParam({
     name: 'id',
@@ -307,10 +300,7 @@ export class QuotesController {
   @ApiResponse({ status: 200, description: 'Quote expired successfully' })
   @ApiResponse({ status: 400, description: 'Bad request - cannot expire quote in this status' })
   @ApiResponse({ status: 404, description: 'Quote not found' })
-  async expire(
-    @CurrentUser() user: CurrentUserPayload,
-    @Param('id', ParseUUIDPipe) id: string,
-  ) {
+  async expire(@CurrentUser() user: CurrentUserPayload, @Param('id', ParseUUIDPipe) id: string) {
     return this.quotesService.expire(user.tenantId, id);
   }
 
@@ -322,7 +312,8 @@ export class QuotesController {
   @HttpCode(200)
   @ApiOperation({
     summary: 'Convert quote to job',
-    description: 'Create a new Job record from an APPROVED quote. Links job to quote. Only APPROVED quotes can be converted.',
+    description:
+      'Create a new Job record from an APPROVED quote. Links job to quote. Only APPROVED quotes can be converted.',
   })
   @ApiParam({
     name: 'id',
@@ -366,7 +357,8 @@ export class QuotesController {
   @HttpCode(200)
   @ApiOperation({
     summary: 'Convert quote to invoice',
-    description: 'Create a new Invoice from an APPROVED quote. Copies all line items and totals. Only APPROVED quotes can be converted.',
+    description:
+      'Create a new Invoice from an APPROVED quote. Copies all line items and totals. Only APPROVED quotes can be converted.',
   })
   @ApiParam({
     name: 'id',

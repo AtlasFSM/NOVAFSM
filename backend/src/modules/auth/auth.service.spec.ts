@@ -72,9 +72,9 @@ describe('AuthService', () => {
     it('should throw UnauthorizedException for invalid credentials', async () => {
       mockUsersService.findByEmail.mockResolvedValue(null);
 
-      await expect(
-        service.validateUser('test@example.com', 'wrong')
-      ).rejects.toThrow(UnauthorizedException);
+      await expect(service.validateUser('test@example.com', 'wrong')).rejects.toThrow(
+        UnauthorizedException,
+      );
     });
 
     it('should throw UnauthorizedException for wrong password', async () => {
@@ -87,9 +87,9 @@ describe('AuthService', () => {
       mockUsersService.findByEmail.mockResolvedValue(mockUser);
       (bcrypt.compare as jest.Mock).mockResolvedValue(false);
 
-      await expect(
-        service.validateUser('test@example.com', 'wrong')
-      ).rejects.toThrow(UnauthorizedException);
+      await expect(service.validateUser('test@example.com', 'wrong')).rejects.toThrow(
+        UnauthorizedException,
+      );
     });
   });
 

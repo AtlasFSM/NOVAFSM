@@ -80,10 +80,7 @@ export class InventoryController {
   @ApiOperation({ summary: 'Update inventory item' })
   @ApiResponse({ status: 200, description: 'Inventory item updated successfully' })
   @ApiResponse({ status: 404, description: 'Inventory item not found' })
-  async update(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Body() dto: UpdateInventoryItemDto,
-  ) {
+  async update(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateInventoryItemDto) {
     return this.inventoryService.update(id, dto);
   }
 
@@ -103,10 +100,7 @@ export class InventoryController {
   @ApiResponse({ status: 200, description: 'Quantity adjusted successfully' })
   @ApiResponse({ status: 404, description: 'Inventory item not found' })
   @ApiResponse({ status: 400, description: 'Invalid adjustment' })
-  async adjustQuantity(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Body() dto: AdjustQuantityDto,
-  ) {
+  async adjustQuantity(@Param('id', ParseUUIDPipe) id: string, @Body() dto: AdjustQuantityDto) {
     return this.inventoryService.adjustQuantity(id, dto);
   }
 

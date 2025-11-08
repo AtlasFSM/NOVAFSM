@@ -5,7 +5,13 @@ import { PrismaService } from '../prisma/prisma.service';
 describe('QuotesService', () => {
   let service: QuotesService;
   const mockPrisma = {
-    quote: { create: jest.fn(), findMany: jest.fn(), findFirst: jest.fn(), update: jest.fn(), count: jest.fn() },
+    quote: {
+      create: jest.fn(),
+      findMany: jest.fn(),
+      findFirst: jest.fn(),
+      update: jest.fn(),
+      count: jest.fn(),
+    },
     customer: { findFirst: jest.fn() },
   };
 

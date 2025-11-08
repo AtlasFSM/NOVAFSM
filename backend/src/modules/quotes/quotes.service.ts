@@ -32,7 +32,17 @@ export class QuotesService {
    * Find all quotes with pagination and filtering
    */
   async findAll(tenantId: string, query: QueryQuotesDto) {
-    const { page = 1, limit = 20, status, customerId, from, to, search, sortBy = 'createdAt', sortOrder = 'desc' } = query;
+    const {
+      page = 1,
+      limit = 20,
+      status,
+      customerId,
+      from,
+      to,
+      search,
+      sortBy = 'createdAt',
+      sortOrder = 'desc',
+    } = query;
     const skip = (page - 1) * limit;
 
     // Build where clause
@@ -231,14 +241,11 @@ export class QuotesService {
 
     // Calculate all lines with taxes
     const calculatedLines = await Promise.all(
-      dto.lines.map((line) =>
-        this.quoteLinesService.calculateLine(tenantId, line, provinceState),
-      ),
+      dto.lines.map((line) => this.quoteLinesService.calculateLine(tenantId, line, provinceState)),
     );
 
     // Calculate totals
-    const { subtotal, taxTotal, total } =
-      this.quoteLinesService.calculateTotals(calculatedLines);
+    const { subtotal, taxTotal, total } = this.quoteLinesService.calculateTotals(calculatedLines);
 
     // Create quote in transaction
     const quote = await this.prisma.$transaction(async (tx) => {
@@ -282,12 +289,7 @@ export class QuotesService {
       });
 
       // Create quote lines
-      await this.quoteLinesService.createLines(
-        tx,
-        tenantId,
-        newQuote.id,
-        calculatedLines,
-      );
+      await this.quoteLinesService.createLines(tx, tenantId, newQuote.id, calculatedLines);
 
       return newQuote;
     });
@@ -305,9 +307,7 @@ export class QuotesService {
 
     // Check if quote can be edited
     if (!['DRAFT', 'SENT'].includes(quote.status)) {
-      throw new BadRequestException(
-        `Cannot update quote in ${quote.status} status`,
-      );
+      throw new BadRequestException(`Cannot update quote in ${quote.status} status`);
     }
 
     // Optimistic locking check
@@ -421,12 +421,7 @@ export class QuotesService {
           ),
         );
 
-        await this.quoteLinesService.updateLines(
-          tx,
-          tenantId,
-          id,
-          calculatedLines,
-        );
+        await this.quoteLinesService.updateLines(tx, tenantId, id, calculatedLines);
       }
 
       return updated;
@@ -491,11 +486,7 @@ export class QuotesService {
 
     // Send email notification with PDF attachment
     try {
-      await this.emailService.sendQuoteEmail(
-        quote.customer.email,
-        quote.customer.name,
-        quote,
-      );
+      await this.emailService.sendQuoteEmail(quote.customer.email, quote.customer.name, quote);
       this.logger.log(`Quote ${quote.number} sent via email to ${quote.customer.email}`);
     } catch (error) {
       this.logger.error(`Failed to send quote email: ${error.message}`, error.stack);
@@ -570,9 +561,7 @@ export class QuotesService {
     const quote = await this.findOne(tenantId, id);
 
     if (!['SENT', 'DRAFT'].includes(quote.status)) {
-      throw new BadRequestException(
-        `Cannot expire quote in ${quote.status} status`,
-      );
+      throw new BadRequestException(`Cannot expire quote in ${quote.status} status`);
     }
 
     const updated = await this.prisma.quote.update({
@@ -671,10 +660,7 @@ export class QuotesService {
     // Create invoice in transaction
     const invoice = await this.prisma.$transaction(async (tx) => {
       // Generate invoice number
-      const invoiceNumber = await this.sequenceService.generateNumber(
-        tenantId,
-        'INVOICE',
-      );
+      const invoiceNumber = await this.sequenceService.generateNumber(tenantId, 'INVOICE');
 
       // Convert quote lines to invoice lines format
       const invoiceLines = quote.lines.map((line: any) => ({

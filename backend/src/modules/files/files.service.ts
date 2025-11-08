@@ -29,10 +29,13 @@ export class FilesService {
     // Configure S3 client (supports both AWS S3 and MinIO)
     const clientConfig: any = {
       region,
-      credentials: accessKeyId && secretAccessKey ? {
-        accessKeyId,
-        secretAccessKey,
-      } : undefined,
+      credentials:
+        accessKeyId && secretAccessKey
+          ? {
+              accessKeyId,
+              secretAccessKey,
+            }
+          : undefined,
       forcePathStyle,
     };
 

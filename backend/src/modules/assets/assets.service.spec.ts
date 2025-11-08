@@ -168,9 +168,7 @@ describe('AssetsService', () => {
     it('should throw NotFoundException when asset not found', async () => {
       mockPrismaService.asset.findFirst.mockResolvedValue(null);
 
-      await expect(service.findOne('tenant-1', 'non-existent')).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(service.findOne('tenant-1', 'non-existent')).rejects.toThrow(NotFoundException);
     });
   });
 
@@ -228,9 +226,7 @@ describe('AssetsService', () => {
 
       mockPrismaService.asset.findFirst.mockResolvedValue(mockAsset);
 
-      await expect(service.remove('tenant-1', 'asset-1')).rejects.toThrow(
-        BadRequestException,
-      );
+      await expect(service.remove('tenant-1', 'asset-1')).rejects.toThrow(BadRequestException);
     });
   });
 

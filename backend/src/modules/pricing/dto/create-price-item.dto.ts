@@ -25,7 +25,7 @@ export class CreatePriceItemDto {
   @IsIn(['EA', 'HR', 'KM'])
   unit?: string;
 
-  @ApiProperty({ example: 125.00 })
+  @ApiProperty({ example: 125.0 })
   @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0)
   @Type(() => Number)

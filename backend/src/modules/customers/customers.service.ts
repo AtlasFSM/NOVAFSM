@@ -1,8 +1,4 @@
-import {
-  Injectable,
-  NotFoundException,
-  BadRequestException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { CreateCustomerDto } from './dto/create-customer.dto';
 import { UpdateCustomerDto } from './dto/update-customer.dto';
@@ -111,9 +107,7 @@ export class CustomersService {
       });
 
       if (existing) {
-        throw new BadRequestException(
-          `Customer with email ${dto.email} already exists`,
-        );
+        throw new BadRequestException(`Customer with email ${dto.email} already exists`);
       }
     }
 
@@ -167,9 +161,7 @@ export class CustomersService {
       });
 
       if (emailConflict) {
-        throw new BadRequestException(
-          `Customer with email ${dto.email} already exists`,
-        );
+        throw new BadRequestException(`Customer with email ${dto.email} already exists`);
       }
     }
 
@@ -224,9 +216,7 @@ export class CustomersService {
 
     // Check if customer has related records
     const hasRelatedRecords =
-      customer._count.jobs > 0 ||
-      customer._count.quotes > 0 ||
-      customer._count.invoices > 0;
+      customer._count.jobs > 0 || customer._count.quotes > 0 || customer._count.invoices > 0;
 
     if (hasRelatedRecords) {
       throw new BadRequestException(
@@ -389,9 +379,7 @@ export class CustomersService {
     });
 
     if (!customer) {
-      throw new NotFoundException(
-        `Deleted customer with ID ${id} not found`,
-      );
+      throw new NotFoundException(`Deleted customer with ID ${id} not found`);
     }
 
     // Restore the customer by setting deletedAt to null

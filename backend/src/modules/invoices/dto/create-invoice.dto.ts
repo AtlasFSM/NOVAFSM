@@ -56,7 +56,10 @@ class InvoiceLineDto {
 }
 
 export class CreateInvoiceDto {
-  @ApiProperty({ description: 'Invoice status', enum: ['DRAFT', 'SENT', 'PAID', 'OVERDUE', 'CANCELLED'] })
+  @ApiProperty({
+    description: 'Invoice status',
+    enum: ['DRAFT', 'SENT', 'PAID', 'OVERDUE', 'CANCELLED'],
+  })
   @IsEnum(['DRAFT', 'SENT', 'PAID', 'OVERDUE', 'CANCELLED'])
   status: string;
 

@@ -24,9 +24,19 @@ describe('ScheduleService', () => {
   });
   it('should detect conflicts', async () => {
     mockPrisma.job.findMany.mockResolvedValue([
-      { id: 'j1', scheduledStart: new Date('2025-01-01T10:00:00'), scheduledEnd: new Date('2025-01-01T12:00:00'), assignedTechnicianId: 'tech1' },
+      {
+        id: 'j1',
+        scheduledStart: new Date('2025-01-01T10:00:00'),
+        scheduledEnd: new Date('2025-01-01T12:00:00'),
+        assignedTechnicianId: 'tech1',
+      },
     ]);
-    const hasConflict = await service.checkConflict('t1', 'tech1', new Date('2025-01-01T11:00:00'), new Date('2025-01-01T13:00:00'));
+    const hasConflict = await service.checkConflict(
+      't1',
+      'tech1',
+      new Date('2025-01-01T11:00:00'),
+      new Date('2025-01-01T13:00:00'),
+    );
     expect(hasConflict).toBe(true);
   });
 });
