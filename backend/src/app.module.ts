@@ -29,6 +29,7 @@ import { ScheduleModule } from './modules/schedule/schedule.module';
 import { AssetsModule } from './modules/assets/assets.module';
 import { DocumentsModule } from './modules/documents/documents.module';
 import { FormsModule } from './modules/forms/forms.module';
+import { TechniciansModule } from './modules/technicians/technicians.module';
 
 @Module({
   imports: [
@@ -83,6 +84,7 @@ import { FormsModule } from './modules/forms/forms.module';
     AssetsModule,
     DocumentsModule,
     FormsModule,
+    TechniciansModule,
   ],
   providers: [
     // Global guards
