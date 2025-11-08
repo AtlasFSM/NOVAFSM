@@ -22,15 +22,10 @@ import {
   MapPin,
   Calendar,
   Clock,
-  FileText,
-  DollarSign,
-  Plus,
-  CheckCircle,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { formatCurrency } from '@/lib/utils';
-import CreateInvoiceDialog from './create-invoice-dialog';
+import InvoiceTab from './invoice-tab';
 
 interface JobDetailPageProps {
   params: {
@@ -41,7 +36,6 @@ interface JobDetailPageProps {
 export default function JobDetailPage({ params }: JobDetailPageProps) {
   const router = useRouter();
   const queryClient = useQueryClient();
-  const [showCreateInvoice, setShowCreateInvoice] = useState(false);
 
   const { data: jobData, isLoading } = useQuery({
     queryKey: ['job', params.id],
@@ -108,23 +102,6 @@ export default function JobDetailPage({ params }: JobDetailPageProps) {
         return 'bg-red-100 text-red-600';
       default:
         return 'bg-gray-100 text-gray-600';
-    }
-  };
-
-  const getInvoiceStatusColor = (status: string) => {
-    switch (status) {
-      case 'DRAFT':
-        return 'bg-gray-100 text-gray-800';
-      case 'SENT':
-        return 'bg-blue-100 text-blue-800';
-      case 'PAID':
-        return 'bg-green-100 text-green-800';
-      case 'OVERDUE':
-        return 'bg-red-100 text-red-800';
-      case 'CANCELLED':
-        return 'bg-gray-100 text-gray-600';
-      default:
-        return 'bg-gray-100 text-gray-800';
     }
   };
 
@@ -337,149 +314,9 @@ export default function JobDetailPage({ params }: JobDetailPageProps) {
         </TabsContent>
 
         <TabsContent value="invoice" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="flex items-center gap-2">
-                    <DollarSign className="h-5 w-5" />
-                    Invoice
-                  </CardTitle>
-                  <CardDescription>
-                    {invoice
-                      ? 'Invoice has been created for this job'
-                      : 'Create an invoice for this completed job'}
-                  </CardDescription>
-                </div>
-                {!invoice && job.status === 'COMPLETED' && (
-                  <Button onClick={() => setShowCreateInvoice(true)}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Create Invoice
-                  </Button>
-                )}
-              </div>
-            </CardHeader>
-            <CardContent>
-              {invoice ? (
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between p-4 border rounded-lg">
-                    <div className="flex items-center gap-4">
-                      <FileText className="h-8 w-8 text-gray-400" />
-                      <div>
-                        <p className="font-semibold text-lg">{invoice.number}</p>
-                        <p className="text-sm text-gray-600">
-                          Issued: {invoice.issuedAt ? new Date(invoice.issuedAt).toLocaleDateString() : 'Not issued'}
-                        </p>
-                        {invoice.dueAt && (
-                          <p className="text-sm text-gray-600">
-                            Due: {new Date(invoice.dueAt).toLocaleDateString()}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <Badge className={getInvoiceStatusColor(invoice.status)}>
-                        {invoice.status}
-                      </Badge>
-                      <p className="text-2xl font-bold mt-2">
-                        {formatCurrency(invoice.total, invoice.currency)}
-                      </p>
-                      <p className="text-sm text-gray-600">
-                        Subtotal: {formatCurrency(invoice.subtotal, invoice.currency)}
-                      </p>
-                      <p className="text-sm text-gray-600">
-                        Tax: {formatCurrency(invoice.taxTotal, invoice.currency)}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex gap-2">
-                    <Button asChild variant="outline" className="flex-1">
-                      <Link href={`/dashboard/invoices/${invoice.id}`}>
-                        <FileText className="h-4 w-4 mr-2" />
-                        View Invoice Details
-                      </Link>
-                    </Button>
-                    {invoice.status === 'PAID' && (
-                      <div className="flex items-center gap-2 px-4 py-2 bg-green-50 border border-green-200 rounded-md">
-                        <CheckCircle className="h-5 w-5 text-green-600" />
-                        <span className="text-sm font-medium text-green-700">
-                          Paid on {invoice.paidAt ? new Date(invoice.paidAt).toLocaleDateString() : ''}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Invoice Lines */}
-                  {invoice.lines && invoice.lines.length > 0 && (
-                    <div className="mt-4">
-                      <h3 className="text-sm font-semibold mb-3">Line Items</h3>
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Description</TableHead>
-                            <TableHead>Qty</TableHead>
-                            <TableHead>Unit</TableHead>
-                            <TableHead className="text-right">Unit Price</TableHead>
-                            <TableHead className="text-right">Amount</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {invoice.lines.map((line: any, index: number) => (
-                            <TableRow key={index}>
-                              <TableCell>
-                                <div>
-                                  <p className="font-medium">{line.description}</p>
-                                  {line.sku && (
-                                    <p className="text-xs text-gray-500">SKU: {line.sku}</p>
-                                  )}
-                                </div>
-                              </TableCell>
-                              <TableCell>{line.quantity}</TableCell>
-                              <TableCell>{line.unit}</TableCell>
-                              <TableCell className="text-right">
-                                {formatCurrency(line.unitPrice, invoice.currency)}
-                              </TableCell>
-                              <TableCell className="text-right font-medium">
-                                {formatCurrency(line.amount, invoice.currency)}
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </div>
-                  )}
-                </div>
-              ) : job.status !== 'COMPLETED' ? (
-                <div className="text-center py-12 text-gray-500">
-                  <FileText className="h-12 w-12 mx-auto mb-3 text-gray-300" />
-                  <p>Invoices can only be created for completed jobs</p>
-                  <p className="text-sm mt-1">Current status: {job.status}</p>
-                </div>
-              ) : (
-                <div className="text-center py-12 text-gray-500">
-                  <FileText className="h-12 w-12 mx-auto mb-3 text-gray-300" />
-                  <p>No invoice has been created for this job yet</p>
-                  <Button onClick={() => setShowCreateInvoice(true)} className="mt-4">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Create Invoice
-                  </Button>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          <InvoiceTab job={job} invoice={invoice} customerId={job.customerId} />
         </TabsContent>
       </Tabs>
-
-      {/* Create Invoice Dialog */}
-      {showCreateInvoice && (
-        <CreateInvoiceDialog
-          open={showCreateInvoice}
-          onClose={() => setShowCreateInvoice(false)}
-          job={job}
-          customerId={job.customerId}
-        />
-      )}
     </div>
   );
 }
