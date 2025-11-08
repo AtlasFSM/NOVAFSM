@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Plus, Edit, Trash2, Star, Archive, List } from 'lucide-react';
+import { Plus, Edit, Trash2, Star, List, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Table,
@@ -31,30 +31,19 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-
-interface PriceList {
-  id: string;
-  name: string;
-  description?: string;
-  currency: 'CAD' | 'USD';
-  isDefault: boolean;
-  status: 'ACTIVE' | 'ARCHIVED';
-  itemCount?: number;
-  createdAt: string;
-}
-
-interface PriceItem {
-  id: string;
-  priceListId: string;
-  sku: string;
-  name: string;
-  description?: string;
-  unitPrice: number;
-  cost?: number;
-  unit: string;
-  category?: string;
-  itemType: 'SERVICE' | 'PART' | 'LABOR';
-}
+import {
+  usePriceLists,
+  usePriceItems,
+  useCreatePriceList,
+  useUpdatePriceList,
+  useDeletePriceList,
+  useSetDefaultPriceList,
+  useCreatePriceItem,
+  useUpdatePriceItem,
+  useDeletePriceItem,
+  type PriceList,
+  type PriceItem,
+} from '@/hooks/use-pricing';
 
 export default function PricingPage() {
   const { toast } = useToast();
@@ -64,151 +53,174 @@ export default function PricingPage() {
   const [editingPriceList, setEditingPriceList] = useState<PriceList | null>(null);
   const [editingPriceItem, setEditingPriceItem] = useState<PriceItem | null>(null);
 
-  // Mock data - replace with actual API calls
-  const [priceLists, setPriceLists] = useState<PriceList[]>([
-    {
-      id: '1',
-      name: 'Standard Pricing 2024',
-      description: 'Default price list for all services',
-      currency: 'CAD',
-      isDefault: true,
-      status: 'ACTIVE',
-      itemCount: 45,
-      createdAt: '2024-01-15',
-    },
-    {
-      id: '2',
-      name: 'Commercial Pricing',
-      description: 'Special pricing for commercial clients',
-      currency: 'CAD',
-      isDefault: false,
-      status: 'ACTIVE',
-      itemCount: 32,
-      createdAt: '2024-02-01',
-    },
-  ]);
+  // API hooks
+  const { data: priceLists = [], isLoading: loadingPriceLists, error: priceListsError } = usePriceLists();
+  const { data: priceItems = [], isLoading: loadingPriceItems } = usePriceItems(selectedPriceList || '');
 
-  const [priceItems, setPriceItems] = useState<PriceItem[]>([
-    {
-      id: '1',
-      priceListId: '1',
-      sku: 'SVC-001',
-      name: 'HVAC Inspection',
-      description: 'Standard HVAC system inspection',
-      unitPrice: 150.00,
-      cost: 75.00,
-      unit: 'hour',
-      category: 'Inspection',
-      itemType: 'SERVICE',
-    },
-    {
-      id: '2',
-      priceListId: '1',
-      sku: 'PRT-101',
-      name: 'Air Filter',
-      description: '16x20 MERV 11 air filter',
-      unitPrice: 25.00,
-      cost: 12.50,
-      unit: 'each',
-      category: 'Parts',
-      itemType: 'PART',
-    },
-  ]);
+  const createPriceList = useCreatePriceList();
+  const updatePriceList = useUpdatePriceList();
+  const deletePriceList = useDeletePriceList();
+  const setDefaultPriceList = useSetDefaultPriceList();
 
-  const handleCreatePriceList = (formData: any) => {
-    const newPriceList: PriceList = {
-      id: Date.now().toString(),
-      name: formData.name,
-      description: formData.description,
-      currency: formData.currency || 'CAD',
-      isDefault: formData.isDefault || false,
-      status: 'ACTIVE',
-      itemCount: 0,
-      createdAt: new Date().toISOString(),
-    };
-    setPriceLists([...priceLists, newPriceList]);
-    setShowPriceListDialog(false);
-    toast({
-      title: 'Success',
-      description: 'Price list created successfully',
-    });
+  const createPriceItem = useCreatePriceItem();
+  const updatePriceItem = useUpdatePriceItem();
+  const deletePriceItem = useDeletePriceItem();
+
+  const handleCreatePriceList = async (formData: any) => {
+    try {
+      await createPriceList.mutateAsync(formData);
+      setShowPriceListDialog(false);
+      toast({
+        title: 'Success',
+        description: 'Price list created successfully',
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.response?.data?.message || 'Failed to create price list',
+        variant: 'destructive',
+      });
+    }
   };
 
-  const handleUpdatePriceList = (id: string, formData: any) => {
-    setPriceLists(priceLists.map(pl =>
-      pl.id === id ? { ...pl, ...formData } : pl
-    ));
-    setShowPriceListDialog(false);
-    setEditingPriceList(null);
-    toast({
-      title: 'Success',
-      description: 'Price list updated successfully',
-    });
+  const handleUpdatePriceList = async (id: string, formData: any) => {
+    try {
+      await updatePriceList.mutateAsync({ id, data: formData });
+      setShowPriceListDialog(false);
+      setEditingPriceList(null);
+      toast({
+        title: 'Success',
+        description: 'Price list updated successfully',
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.response?.data?.message || 'Failed to update price list',
+        variant: 'destructive',
+      });
+    }
   };
 
-  const handleDeletePriceList = (id: string) => {
-    setPriceLists(priceLists.filter(pl => pl.id !== id));
-    toast({
-      title: 'Success',
-      description: 'Price list deleted successfully',
-    });
+  const handleDeletePriceList = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this price list?')) return;
+
+    try {
+      await deletePriceList.mutateAsync(id);
+      if (selectedPriceList === id) {
+        setSelectedPriceList(null);
+      }
+      toast({
+        title: 'Success',
+        description: 'Price list deleted successfully',
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.response?.data?.message || 'Failed to delete price list',
+        variant: 'destructive',
+      });
+    }
   };
 
-  const handleSetDefault = (id: string) => {
-    setPriceLists(priceLists.map(pl => ({
-      ...pl,
-      isDefault: pl.id === id,
-    })));
-    toast({
-      title: 'Success',
-      description: 'Default price list updated',
-    });
+  const handleSetDefault = async (id: string) => {
+    try {
+      await setDefaultPriceList.mutateAsync(id);
+      toast({
+        title: 'Success',
+        description: 'Default price list updated',
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.response?.data?.message || 'Failed to set default price list',
+        variant: 'destructive',
+      });
+    }
   };
 
-  const handleCreatePriceItem = (formData: any) => {
-    const newItem: PriceItem = {
-      id: Date.now().toString(),
-      priceListId: selectedPriceList!,
-      sku: formData.sku,
-      name: formData.name,
-      description: formData.description,
-      unitPrice: parseFloat(formData.unitPrice),
-      cost: formData.cost ? parseFloat(formData.cost) : undefined,
-      unit: formData.unit,
-      category: formData.category,
-      itemType: formData.itemType,
-    };
-    setPriceItems([...priceItems, newItem]);
-    setShowPriceItemDialog(false);
-    toast({
-      title: 'Success',
-      description: 'Price item created successfully',
-    });
+  const handleCreatePriceItem = async (formData: any) => {
+    try {
+      await createPriceItem.mutateAsync({
+        ...formData,
+        priceListId: selectedPriceList!,
+        unitPrice: parseFloat(formData.unitPrice),
+        cost: formData.cost ? parseFloat(formData.cost) : undefined,
+      });
+      setShowPriceItemDialog(false);
+      toast({
+        title: 'Success',
+        description: 'Price item created successfully',
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.response?.data?.message || 'Failed to create price item',
+        variant: 'destructive',
+      });
+    }
   };
 
-  const handleUpdatePriceItem = (id: string, formData: any) => {
-    setPriceItems(priceItems.map(item =>
-      item.id === id ? { ...item, ...formData } : item
-    ));
-    setShowPriceItemDialog(false);
-    setEditingPriceItem(null);
-    toast({
-      title: 'Success',
-      description: 'Price item updated successfully',
-    });
+  const handleUpdatePriceItem = async (id: string, formData: any) => {
+    try {
+      await updatePriceItem.mutateAsync({
+        id,
+        data: {
+          ...formData,
+          unitPrice: parseFloat(formData.unitPrice),
+          cost: formData.cost ? parseFloat(formData.cost) : undefined,
+        },
+      });
+      setShowPriceItemDialog(false);
+      setEditingPriceItem(null);
+      toast({
+        title: 'Success',
+        description: 'Price item updated successfully',
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.response?.data?.message || 'Failed to update price item',
+        variant: 'destructive',
+      });
+    }
   };
 
-  const handleDeletePriceItem = (id: string) => {
-    setPriceItems(priceItems.filter(item => item.id !== id));
-    toast({
-      title: 'Success',
-      description: 'Price item deleted successfully',
-    });
+  const handleDeletePriceItem = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this price item?')) return;
+
+    try {
+      await deletePriceItem.mutateAsync({ id, priceListId: selectedPriceList! });
+      toast({
+        title: 'Success',
+        description: 'Price item deleted successfully',
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.response?.data?.message || 'Failed to delete price item',
+        variant: 'destructive',
+      });
+    }
   };
 
-  const filteredPriceItems = selectedPriceList
-    ? priceItems.filter(item => item.priceListId === selectedPriceList)
-    : [];
+  if (loadingPriceLists) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (priceListsError) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <div className="text-center">
+          <p className="text-destructive mb-2">Failed to load price lists</p>
+          <Button onClick={() => window.location.reload()}>Retry</Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -219,10 +231,13 @@ export default function PricingPage() {
             Manage price lists and pricing items for your services and products.
           </p>
         </div>
-        <Button onClick={() => {
-          setEditingPriceList(null);
-          setShowPriceListDialog(true);
-        }}>
+        <Button
+          onClick={() => {
+            setEditingPriceList(null);
+            setShowPriceListDialog(true);
+          }}
+          disabled={createPriceList.isPending}
+        >
           <Plus className="mr-2 h-4 w-4" />
           New Price List
         </Button>
@@ -244,72 +259,81 @@ export default function PricingPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {priceLists.map((priceList) => (
-                <TableRow
-                  key={priceList.id}
-                  className={selectedPriceList === priceList.id ? 'bg-muted/50' : ''}
-                >
-                  <TableCell className="font-medium">
-                    <div className="flex items-center gap-2">
-                      {priceList.name}
-                      {priceList.isDefault && (
-                        <Badge variant="secondary" className="ml-2">
-                          <Star className="h-3 w-3 mr-1" />
-                          Default
-                        </Badge>
-                      )}
-                    </div>
+              {priceLists.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center text-muted-foreground">
+                    No price lists found. Create your first price list to get started.
                   </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {priceList.description}
-                  </TableCell>
-                  <TableCell>{priceList.currency}</TableCell>
-                  <TableCell>{priceList.itemCount || 0}</TableCell>
-                  <TableCell>
-                    <Badge variant={priceList.status === 'ACTIVE' ? 'default' : 'secondary'}>
-                      {priceList.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setSelectedPriceList(priceList.id)}
-                      >
-                        <List className="h-4 w-4" />
-                      </Button>
-                      {!priceList.isDefault && (
+                </TableRow>
+              ) : (
+                priceLists.map((priceList) => (
+                  <TableRow
+                    key={priceList.id}
+                    className={selectedPriceList === priceList.id ? 'bg-muted/50' : ''}
+                  >
+                    <TableCell className="font-medium">
+                      <div className="flex items-center gap-2">
+                        {priceList.name}
+                        {priceList.isDefault && (
+                          <Badge variant="secondary" className="ml-2">
+                            <Star className="h-3 w-3 mr-1" />
+                            Default
+                          </Badge>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {priceList.description || '-'}
+                    </TableCell>
+                    <TableCell>{priceList.currency}</TableCell>
+                    <TableCell>-</TableCell>
+                    <TableCell>
+                      <Badge variant={priceList.status === 'ACTIVE' ? 'default' : 'secondary'}>
+                        {priceList.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-2">
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => handleSetDefault(priceList.id)}
+                          onClick={() => setSelectedPriceList(priceList.id)}
                         >
-                          <Star className="h-4 w-4" />
+                          <List className="h-4 w-4" />
                         </Button>
-                      )}
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          setEditingPriceList(priceList);
-                          setShowPriceListDialog(true);
-                        }}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDeletePriceList(priceList.id)}
-                        disabled={priceList.isDefault}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
+                        {!priceList.isDefault && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleSetDefault(priceList.id)}
+                            disabled={setDefaultPriceList.isPending}
+                          >
+                            <Star className="h-4 w-4" />
+                          </Button>
+                        )}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setEditingPriceList(priceList);
+                            setShowPriceListDialog(true);
+                          }}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDeletePriceList(priceList.id)}
+                          disabled={priceList.isDefault || deletePriceList.isPending}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
         </div>
@@ -323,86 +347,105 @@ export default function PricingPage() {
               <h2 className="text-xl font-semibold">
                 Price Items - {priceLists.find(pl => pl.id === selectedPriceList)?.name}
               </h2>
-              <Button onClick={() => {
-                setEditingPriceItem(null);
-                setShowPriceItemDialog(true);
-              }}>
+              <Button
+                onClick={() => {
+                  setEditingPriceItem(null);
+                  setShowPriceItemDialog(true);
+                }}
+                disabled={createPriceItem.isPending}
+              >
                 <Plus className="mr-2 h-4 w-4" />
                 Add Item
               </Button>
             </div>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>SKU</TableHead>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Category</TableHead>
-                  <TableHead>Unit</TableHead>
-                  <TableHead className="text-right">Cost</TableHead>
-                  <TableHead className="text-right">Price</TableHead>
-                  <TableHead className="text-right">Margin</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredPriceItems.map((item) => {
-                  const margin = item.cost
-                    ? ((item.unitPrice - item.cost) / item.unitPrice * 100).toFixed(1)
-                    : null;
-                  return (
-                    <TableRow key={item.id}>
-                      <TableCell className="font-mono text-sm">{item.sku}</TableCell>
-                      <TableCell>
-                        <div>
-                          <div className="font-medium">{item.name}</div>
-                          {item.description && (
-                            <div className="text-sm text-muted-foreground">
-                              {item.description}
-                            </div>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline">{item.itemType}</Badge>
-                      </TableCell>
-                      <TableCell>{item.category}</TableCell>
-                      <TableCell>{item.unit}</TableCell>
-                      <TableCell className="text-right">
-                        {item.cost ? `$${item.cost.toFixed(2)}` : '-'}
-                      </TableCell>
-                      <TableCell className="text-right font-medium">
-                        ${item.unitPrice.toFixed(2)}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {margin ? `${margin}%` : '-'}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                              setEditingPriceItem(item);
-                              setShowPriceItemDialog(true);
-                            }}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDeletePriceItem(item.id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
+
+            {loadingPriceItems ? (
+              <div className="flex items-center justify-center h-32">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>SKU</TableHead>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Category</TableHead>
+                    <TableHead>Unit</TableHead>
+                    <TableHead className="text-right">Cost</TableHead>
+                    <TableHead className="text-right">Price</TableHead>
+                    <TableHead className="text-right">Margin</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {priceItems.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={9} className="text-center text-muted-foreground">
+                        No price items found. Add items to this price list.
                       </TableCell>
                     </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
+                  ) : (
+                    priceItems.map((item) => {
+                      const margin = item.cost
+                        ? ((item.unitPrice - item.cost) / item.unitPrice * 100).toFixed(1)
+                        : null;
+                      return (
+                        <TableRow key={item.id}>
+                          <TableCell className="font-mono text-sm">{item.sku}</TableCell>
+                          <TableCell>
+                            <div>
+                              <div className="font-medium">{item.name}</div>
+                              {item.description && (
+                                <div className="text-sm text-muted-foreground">
+                                  {item.description}
+                                </div>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline">{item.itemType}</Badge>
+                          </TableCell>
+                          <TableCell>{item.category || '-'}</TableCell>
+                          <TableCell>{item.unit}</TableCell>
+                          <TableCell className="text-right">
+                            {item.cost ? `$${item.cost.toFixed(2)}` : '-'}
+                          </TableCell>
+                          <TableCell className="text-right font-medium">
+                            ${item.unitPrice.toFixed(2)}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {margin ? `${margin}%` : '-'}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex items-center justify-end gap-2">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  setEditingPriceItem(item);
+                                  setShowPriceItemDialog(true);
+                                }}
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleDeletePriceItem(item.id)}
+                                disabled={deletePriceItem.isPending}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
+                  )}
+                </TableBody>
+              </Table>
+            )}
           </div>
         </div>
       )}
@@ -419,6 +462,7 @@ export default function PricingPage() {
             handleCreatePriceList(data);
           }
         }}
+        isSubmitting={createPriceList.isPending || updatePriceList.isPending}
       />
 
       {/* Price Item Dialog */}
@@ -433,6 +477,7 @@ export default function PricingPage() {
             handleCreatePriceItem(data);
           }
         }}
+        isSubmitting={createPriceItem.isPending || updatePriceItem.isPending}
       />
     </div>
   );
@@ -442,12 +487,14 @@ function PriceListDialog({
   open,
   onOpenChange,
   priceList,
-  onSubmit
+  onSubmit,
+  isSubmitting,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   priceList: PriceList | null;
   onSubmit: (data: any) => void;
+  isSubmitting?: boolean;
 }) {
   const [formData, setFormData] = useState({
     name: priceList?.name || '',
@@ -477,6 +524,7 @@ function PriceListDialog({
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               placeholder="Standard Pricing 2024"
+              required
             />
           </div>
           <div>
@@ -505,11 +553,18 @@ function PriceListDialog({
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
             Cancel
           </Button>
-          <Button onClick={() => onSubmit(formData)}>
-            {priceList ? 'Update' : 'Create'}
+          <Button onClick={() => onSubmit(formData)} disabled={isSubmitting || !formData.name}>
+            {isSubmitting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              priceList ? 'Update' : 'Create'
+            )}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -521,12 +576,14 @@ function PriceItemDialog({
   open,
   onOpenChange,
   priceItem,
-  onSubmit
+  onSubmit,
+  isSubmitting,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   priceItem: PriceItem | null;
   onSubmit: (data: any) => void;
+  isSubmitting?: boolean;
 }) {
   const [formData, setFormData] = useState({
     sku: priceItem?.sku || '',
@@ -560,6 +617,7 @@ function PriceItemDialog({
               value={formData.sku}
               onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
               placeholder="SVC-001"
+              required
             />
           </div>
           <div>
@@ -585,6 +643,7 @@ function PriceItemDialog({
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               placeholder="HVAC Inspection"
+              required
             />
           </div>
           <div className="col-span-2">
@@ -642,15 +701,26 @@ function PriceItemDialog({
               value={formData.unitPrice}
               onChange={(e) => setFormData({ ...formData, unitPrice: e.target.value })}
               placeholder="0.00"
+              required
             />
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
             Cancel
           </Button>
-          <Button onClick={() => onSubmit(formData)}>
-            {priceItem ? 'Update' : 'Create'}
+          <Button
+            onClick={() => onSubmit(formData)}
+            disabled={isSubmitting || !formData.sku || !formData.name || !formData.unitPrice}
+          >
+            {isSubmitting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              priceItem ? 'Update' : 'Create'
+            )}
           </Button>
         </DialogFooter>
       </DialogContent>

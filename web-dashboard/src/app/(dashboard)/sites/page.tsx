@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Plus, Edit, Trash2, MapPin, Star, Phone, Mail, Building2 } from 'lucide-react';
+import { Plus, Edit, Trash2, MapPin, Star, Phone, Mail, Building2, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Table,
@@ -32,27 +32,19 @@ import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
+import {
+  useSites,
+  useCreateSite,
+  useUpdateSite,
+  useDeleteSite,
+  useSetPrimarySite,
+  type Site as APISite,
+} from '@/hooks/use-sites';
 
-interface Site {
-  id: string;
-  customerId: string;
-  customerName: string;
-  name: string;
-  address: string;
-  city: string;
-  province: string;
-  postalCode: string;
-  country: string;
-  latitude?: number;
-  longitude?: number;
-  contactName?: string;
-  contactPhone?: string;
-  contactEmail?: string;
-  notes?: string;
-  isPrimary: boolean;
+// Extend API type with UI-specific fields
+type Site = APISite & {
   jobCount?: number;
-  createdAt: string;
-}
+};
 
 export default function SitesPage() {
   const { toast } = useToast();
@@ -61,128 +53,102 @@ export default function SitesPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterCustomer, setFilterCustomer] = useState<string>('all');
 
-  // Mock data - replace with actual API calls
-  const [sites, setSites] = useState<Site[]>([
-    {
-      id: '1',
-      customerId: 'cust1',
-      customerName: 'Acme Corporation',
-      name: 'Main Office',
-      address: '123 Main Street',
-      city: 'Vancouver',
-      province: 'BC',
-      postalCode: 'V6B 2M9',
-      country: 'Canada',
-      latitude: 49.2827,
-      longitude: -123.1207,
-      contactName: 'Jane Smith',
-      contactPhone: '+1-604-555-0100',
-      contactEmail: 'jane.smith@acme.com',
-      notes: 'Access code: 1234',
-      isPrimary: true,
-      jobCount: 15,
-      createdAt: '2024-01-15',
-    },
-    {
-      id: '2',
-      customerId: 'cust1',
-      customerName: 'Acme Corporation',
-      name: 'Warehouse',
-      address: '456 Industrial Way',
-      city: 'Richmond',
-      province: 'BC',
-      postalCode: 'V7C 1A1',
-      country: 'Canada',
-      latitude: 49.1666,
-      longitude: -123.1336,
-      contactName: 'Bob Johnson',
-      contactPhone: '+1-604-555-0101',
-      contactEmail: 'bob.johnson@acme.com',
-      isPrimary: false,
-      jobCount: 8,
-      createdAt: '2024-02-01',
-    },
-    {
-      id: '3',
-      customerId: 'cust2',
-      customerName: 'TechStart Inc',
-      name: 'Head Office',
-      address: '789 Tech Drive',
-      city: 'Burnaby',
-      province: 'BC',
-      postalCode: 'V5H 3Z7',
-      country: 'Canada',
-      latitude: 49.2488,
-      longitude: -122.9805,
-      contactName: 'Alice Chen',
-      contactPhone: '+1-604-555-0102',
-      contactEmail: 'alice@techstart.com',
-      isPrimary: true,
-      jobCount: 12,
-      createdAt: '2024-01-20',
-    },
-  ]);
+  // API hooks
+  const { data: sites = [], isLoading, error } = useSites();
+  const createSite = useCreateSite();
+  const updateSite = useUpdateSite();
+  const deleteSite = useDeleteSite();
+  const setPrimarySite = useSetPrimarySite();
 
   const customers = Array.from(new Set(sites.map(s => s.customerName)));
 
-  const handleCreateSite = (formData: any) => {
-    const newSite: Site = {
-      id: Date.now().toString(),
-      customerId: formData.customerId,
-      customerName: formData.customerName,
-      name: formData.name,
-      address: formData.address,
-      city: formData.city,
-      province: formData.province,
-      postalCode: formData.postalCode,
-      country: formData.country || 'Canada',
-      latitude: formData.latitude ? parseFloat(formData.latitude) : undefined,
-      longitude: formData.longitude ? parseFloat(formData.longitude) : undefined,
-      contactName: formData.contactName,
-      contactPhone: formData.contactPhone,
-      contactEmail: formData.contactEmail,
-      notes: formData.notes,
-      isPrimary: formData.isPrimary || false,
-      jobCount: 0,
-      createdAt: new Date().toISOString(),
-    };
-    setSites([...sites, newSite]);
-    setShowDialog(false);
-    toast({
-      title: 'Success',
-      description: 'Site created successfully',
-    });
+  const handleCreateSite = async (formData: any) => {
+    try {
+      await createSite.mutateAsync({
+        customerId: formData.customerId,
+        name: formData.name,
+        address: formData.address,
+        city: formData.city,
+        province: formData.province,
+        postalCode: formData.postalCode,
+        country: formData.country || 'Canada',
+        latitude: formData.latitude ? parseFloat(formData.latitude) : undefined,
+        longitude: formData.longitude ? parseFloat(formData.longitude) : undefined,
+        contactName: formData.contactName || undefined,
+        contactPhone: formData.contactPhone || undefined,
+        contactEmail: formData.contactEmail || undefined,
+        notes: formData.notes || undefined,
+        isPrimary: formData.isPrimary || false,
+      });
+      setShowDialog(false);
+      toast({
+        title: 'Success',
+        description: 'Site created successfully',
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.response?.data?.message || 'Failed to create site',
+        variant: 'destructive',
+      });
+    }
   };
 
-  const handleUpdateSite = (id: string, formData: any) => {
-    setSites(sites.map(site =>
-      site.id === id ? { ...site, ...formData } : site
-    ));
-    setShowDialog(false);
-    setEditingSite(null);
-    toast({
-      title: 'Success',
-      description: 'Site updated successfully',
-    });
+  const handleUpdateSite = async (id: string, formData: any) => {
+    try {
+      await updateSite.mutateAsync({
+        id,
+        data: formData,
+      });
+      setShowDialog(false);
+      setEditingSite(null);
+      toast({
+        title: 'Success',
+        description: 'Site updated successfully',
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.response?.data?.message || 'Failed to update site',
+        variant: 'destructive',
+      });
+    }
   };
 
-  const handleDeleteSite = (id: string) => {
-    setSites(sites.filter(site => site.id !== id));
-    toast({
-      title: 'Success',
-      description: 'Site deleted successfully',
-    });
+  const handleDeleteSite = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this site?')) {
+      return;
+    }
+
+    try {
+      await deleteSite.mutateAsync(id);
+      toast({
+        title: 'Success',
+        description: 'Site deleted successfully',
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.response?.data?.message || 'Failed to delete site',
+        variant: 'destructive',
+      });
+    }
   };
 
-  const handleSetPrimary = (id: string, customerId: string) => {
-    setSites(sites.map(site => ({
-      ...site,
-      isPrimary: site.customerId === customerId ? site.id === id : site.isPrimary,
-    })));
-    toast({
-      title: 'Success',
-      description: 'Primary site updated',
-    });
+  const handleSetPrimary = async (id: string) => {
+    try {
+      await setPrimarySite.mutateAsync(id);
+      toast({
+        title: 'Success',
+        description: 'Primary site updated',
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.response?.data?.message || 'Failed to update primary site',
+        variant: 'destructive',
+      });
+    }
   };
 
   const filteredSites = sites.filter(site => {
@@ -190,12 +156,33 @@ export default function SitesPage() {
       site.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       site.address.toLowerCase().includes(searchQuery.toLowerCase()) ||
       site.city.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      site.customerName.toLowerCase().includes(searchQuery.toLowerCase());
+      (site.customerName && site.customerName.toLowerCase().includes(searchQuery.toLowerCase()));
 
     const matchesCustomer = filterCustomer === 'all' || site.customerName === filterCustomer;
 
     return matchesSearch && matchesCustomer;
   });
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <div className="text-center">
+          <p className="text-destructive mb-2">Failed to load sites</p>
+          <Button onClick={() => window.location.reload()}>Retry</Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -355,7 +342,7 @@ export default function SitesPage() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => handleSetPrimary(site.id, site.customerId)}
+                        onClick={() => handleSetPrimary(site.id)}
                       >
                         <Star className="h-4 w-4" />
                       </Button>
@@ -398,6 +385,7 @@ export default function SitesPage() {
             handleCreateSite(data);
           }
         }}
+        isSubmitting={createSite.isPending || updateSite.isPending}
       />
     </div>
   );
@@ -407,12 +395,14 @@ function SiteDialog({
   open,
   onOpenChange,
   site,
-  onSubmit
+  onSubmit,
+  isSubmitting = false,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   site: Site | null;
   onSubmit: (data: any) => void;
+  isSubmitting?: boolean;
 }) {
   const [formData, setFormData] = useState({
     customerId: site?.customerId || '',
@@ -587,11 +577,18 @@ function SiteDialog({
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
             Cancel
           </Button>
-          <Button onClick={() => onSubmit(formData)}>
-            {site ? 'Update' : 'Create'}
+          <Button onClick={() => onSubmit(formData)} disabled={isSubmitting || !formData.name}>
+            {isSubmitting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              site ? 'Update' : 'Create'
+            )}
           </Button>
         </DialogFooter>
       </DialogContent>

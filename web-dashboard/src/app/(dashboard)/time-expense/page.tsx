@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Plus, Edit, Trash2, Clock, DollarSign, Calendar, FileText } from 'lucide-react';
+import { Plus, Edit, Trash2, Clock, DollarSign, Calendar, FileText, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Table,
@@ -32,35 +32,28 @@ import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
+import {
+  useTimeEntries,
+  useCreateTimeEntry,
+  useUpdateTimeEntry,
+  useDeleteTimeEntry,
+  useExpenseEntries,
+  useCreateExpenseEntry,
+  useUpdateExpenseEntry,
+  useDeleteExpenseEntry,
+  type TimeEntry as APITimeEntry,
+  type ExpenseEntry as APIExpenseEntry,
+} from '@/hooks/use-time-expense';
 
-interface TimeEntry {
-  id: string;
-  userId: string;
-  userName: string;
-  jobId?: string;
-  jobNumber?: string;
-  type: 'WORK' | 'TRAVEL' | 'BREAK';
-  startTime: string;
-  endTime?: string;
+// Extend API types with UI-specific fields
+type TimeEntry = APITimeEntry & {
+  status?: 'DRAFT' | 'SUBMITTED' | 'APPROVED' | 'REJECTED';
   duration?: number;
-  notes?: string;
-  status: 'DRAFT' | 'SUBMITTED' | 'APPROVED' | 'REJECTED';
-}
+};
 
-interface ExpenseEntry {
-  id: string;
-  userId: string;
-  userName: string;
-  jobId?: string;
-  jobNumber?: string;
-  type: 'MILEAGE' | 'MATERIALS' | 'MEALS' | 'OTHER';
-  amount: number;
-  currency: 'CAD' | 'USD';
-  description: string;
-  receiptUrl?: string;
-  expenseDate: string;
-  status: 'DRAFT' | 'SUBMITTED' | 'APPROVED' | 'REJECTED';
-}
+type ExpenseEntry = APIExpenseEntry & {
+  status?: 'DRAFT' | 'SUBMITTED' | 'APPROVED' | 'REJECTED';
+};
 
 export default function TimeExpensePage() {
   const { toast } = useToast();
@@ -70,189 +63,223 @@ export default function TimeExpensePage() {
   const [editingTimeEntry, setEditingTimeEntry] = useState<TimeEntry | null>(null);
   const [editingExpenseEntry, setEditingExpenseEntry] = useState<ExpenseEntry | null>(null);
 
-  // Mock data - replace with actual API calls
-  const [timeEntries, setTimeEntries] = useState<TimeEntry[]>([
-    {
-      id: '1',
-      userId: 'user1',
-      userName: 'John Smith',
-      jobId: 'job1',
-      jobNumber: 'J-2024-001',
-      type: 'WORK',
-      startTime: '2024-11-08T09:00:00Z',
-      endTime: '2024-11-08T17:00:00Z',
-      duration: 8,
-      notes: 'HVAC installation at customer site',
-      status: 'SUBMITTED',
-    },
-    {
-      id: '2',
-      userId: 'user1',
-      userName: 'John Smith',
-      jobId: 'job1',
-      jobNumber: 'J-2024-001',
-      type: 'TRAVEL',
-      startTime: '2024-11-08T08:00:00Z',
-      endTime: '2024-11-08T09:00:00Z',
-      duration: 1,
-      notes: 'Travel to customer site',
-      status: 'SUBMITTED',
-    },
-  ]);
+  // API hooks
+  const { data: timeEntries = [], isLoading: loadingTimeEntries, error: timeEntriesError } = useTimeEntries();
+  const createTimeEntry = useCreateTimeEntry();
+  const updateTimeEntry = useUpdateTimeEntry();
+  const deleteTimeEntry = useDeleteTimeEntry();
 
-  const [expenseEntries, setExpenseEntries] = useState<ExpenseEntry[]>([
-    {
-      id: '1',
-      userId: 'user1',
-      userName: 'John Smith',
-      jobId: 'job1',
-      jobNumber: 'J-2024-001',
-      type: 'MILEAGE',
-      amount: 45.50,
-      currency: 'CAD',
-      description: 'Travel to customer site - 65 km @ $0.70/km',
-      expenseDate: '2024-11-08',
-      status: 'SUBMITTED',
-    },
-    {
-      id: '2',
-      userId: 'user1',
-      userName: 'John Smith',
-      jobId: 'job1',
-      jobNumber: 'J-2024-001',
-      type: 'MATERIALS',
-      amount: 125.00,
-      currency: 'CAD',
-      description: 'Emergency parts from local supplier',
-      receiptUrl: 'https://example.com/receipt.pdf',
-      expenseDate: '2024-11-08',
-      status: 'SUBMITTED',
-    },
-  ]);
+  const { data: expenseEntries = [], isLoading: loadingExpenseEntries, error: expenseEntriesError } = useExpenseEntries();
+  const createExpenseEntry = useCreateExpenseEntry();
+  const updateExpenseEntry = useUpdateExpenseEntry();
+  const deleteExpenseEntry = useDeleteExpenseEntry();
 
-  const handleCreateTimeEntry = (formData: any) => {
-    const newEntry: TimeEntry = {
-      id: Date.now().toString(),
-      userId: 'current-user',
-      userName: 'Current User',
-      jobId: formData.jobId || undefined,
-      jobNumber: formData.jobNumber || undefined,
-      type: formData.type,
-      startTime: formData.startTime,
-      endTime: formData.endTime || undefined,
-      duration: formData.duration ? parseFloat(formData.duration) : undefined,
-      notes: formData.notes,
-      status: 'DRAFT',
-    };
-    setTimeEntries([...timeEntries, newEntry]);
-    setShowTimeDialog(false);
-    toast({
-      title: 'Success',
-      description: 'Time entry created successfully',
-    });
+  const handleCreateTimeEntry = async (formData: any) => {
+    try {
+      await createTimeEntry.mutateAsync({
+        jobId: formData.jobId || undefined,
+        jobNumber: formData.jobNumber || undefined,
+        type: formData.type,
+        startTime: formData.startTime,
+        endTime: formData.endTime || undefined,
+        notes: formData.notes,
+      });
+      setShowTimeDialog(false);
+      toast({
+        title: 'Success',
+        description: 'Time entry created successfully',
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.response?.data?.message || 'Failed to create time entry',
+        variant: 'destructive',
+      });
+    }
   };
 
-  const handleUpdateTimeEntry = (id: string, formData: any) => {
-    setTimeEntries(timeEntries.map(entry =>
-      entry.id === id ? { ...entry, ...formData } : entry
-    ));
-    setShowTimeDialog(false);
-    setEditingTimeEntry(null);
-    toast({
-      title: 'Success',
-      description: 'Time entry updated successfully',
-    });
+  const handleUpdateTimeEntry = async (id: string, formData: any) => {
+    try {
+      await updateTimeEntry.mutateAsync({
+        id,
+        data: formData,
+      });
+      setShowTimeDialog(false);
+      setEditingTimeEntry(null);
+      toast({
+        title: 'Success',
+        description: 'Time entry updated successfully',
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.response?.data?.message || 'Failed to update time entry',
+        variant: 'destructive',
+      });
+    }
   };
 
-  const handleDeleteTimeEntry = (id: string) => {
-    setTimeEntries(timeEntries.filter(entry => entry.id !== id));
-    toast({
-      title: 'Success',
-      description: 'Time entry deleted successfully',
-    });
+  const handleDeleteTimeEntry = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this time entry?')) {
+      return;
+    }
+
+    try {
+      await deleteTimeEntry.mutateAsync(id);
+      toast({
+        title: 'Success',
+        description: 'Time entry deleted successfully',
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.response?.data?.message || 'Failed to delete time entry',
+        variant: 'destructive',
+      });
+    }
   };
 
-  const handleSubmitTimeEntry = (id: string) => {
-    setTimeEntries(timeEntries.map(entry =>
-      entry.id === id ? { ...entry, status: 'SUBMITTED' as const } : entry
-    ));
-    toast({
-      title: 'Success',
-      description: 'Time entry submitted for approval',
-    });
+  const handleSubmitTimeEntry = async (id: string) => {
+    try {
+      await updateTimeEntry.mutateAsync({
+        id,
+        data: { status: 'SUBMITTED' as any },
+      });
+      toast({
+        title: 'Success',
+        description: 'Time entry submitted for approval',
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.response?.data?.message || 'Failed to submit time entry',
+        variant: 'destructive',
+      });
+    }
   };
 
-  const handleApproveTimeEntry = (id: string) => {
-    setTimeEntries(timeEntries.map(entry =>
-      entry.id === id ? { ...entry, status: 'APPROVED' as const } : entry
-    ));
-    toast({
-      title: 'Success',
-      description: 'Time entry approved',
-    });
+  const handleApproveTimeEntry = async (id: string) => {
+    try {
+      await updateTimeEntry.mutateAsync({
+        id,
+        data: { status: 'APPROVED' as any },
+      });
+      toast({
+        title: 'Success',
+        description: 'Time entry approved',
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.response?.data?.message || 'Failed to approve time entry',
+        variant: 'destructive',
+      });
+    }
   };
 
-  const handleCreateExpenseEntry = (formData: any) => {
-    const newEntry: ExpenseEntry = {
-      id: Date.now().toString(),
-      userId: 'current-user',
-      userName: 'Current User',
-      jobId: formData.jobId || undefined,
-      jobNumber: formData.jobNumber || undefined,
-      type: formData.type,
-      amount: parseFloat(formData.amount),
-      currency: formData.currency,
-      description: formData.description,
-      receiptUrl: formData.receiptUrl || undefined,
-      expenseDate: formData.expenseDate,
-      status: 'DRAFT',
-    };
-    setExpenseEntries([...expenseEntries, newEntry]);
-    setShowExpenseDialog(false);
-    toast({
-      title: 'Success',
-      description: 'Expense entry created successfully',
-    });
+  const handleCreateExpenseEntry = async (formData: any) => {
+    try {
+      await createExpenseEntry.mutateAsync({
+        jobId: formData.jobId || undefined,
+        jobNumber: formData.jobNumber || undefined,
+        type: formData.type,
+        amount: parseFloat(formData.amount),
+        currency: formData.currency,
+        description: formData.description,
+        receiptUrl: formData.receiptUrl || undefined,
+        expenseDate: formData.expenseDate,
+      });
+      setShowExpenseDialog(false);
+      toast({
+        title: 'Success',
+        description: 'Expense entry created successfully',
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.response?.data?.message || 'Failed to create expense entry',
+        variant: 'destructive',
+      });
+    }
   };
 
-  const handleUpdateExpenseEntry = (id: string, formData: any) => {
-    setExpenseEntries(expenseEntries.map(entry =>
-      entry.id === id ? { ...entry, ...formData } : entry
-    ));
-    setShowExpenseDialog(false);
-    setEditingExpenseEntry(null);
-    toast({
-      title: 'Success',
-      description: 'Expense entry updated successfully',
-    });
+  const handleUpdateExpenseEntry = async (id: string, formData: any) => {
+    try {
+      await updateExpenseEntry.mutateAsync({
+        id,
+        data: formData,
+      });
+      setShowExpenseDialog(false);
+      setEditingExpenseEntry(null);
+      toast({
+        title: 'Success',
+        description: 'Expense entry updated successfully',
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.response?.data?.message || 'Failed to update expense entry',
+        variant: 'destructive',
+      });
+    }
   };
 
-  const handleDeleteExpenseEntry = (id: string) => {
-    setExpenseEntries(expenseEntries.filter(entry => entry.id !== id));
-    toast({
-      title: 'Success',
-      description: 'Expense entry deleted successfully',
-    });
+  const handleDeleteExpenseEntry = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this expense entry?')) {
+      return;
+    }
+
+    try {
+      await deleteExpenseEntry.mutateAsync(id);
+      toast({
+        title: 'Success',
+        description: 'Expense entry deleted successfully',
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.response?.data?.message || 'Failed to delete expense entry',
+        variant: 'destructive',
+      });
+    }
   };
 
-  const handleSubmitExpenseEntry = (id: string) => {
-    setExpenseEntries(expenseEntries.map(entry =>
-      entry.id === id ? { ...entry, status: 'SUBMITTED' as const } : entry
-    ));
-    toast({
-      title: 'Success',
-      description: 'Expense entry submitted for approval',
-    });
+  const handleSubmitExpenseEntry = async (id: string) => {
+    try {
+      await updateExpenseEntry.mutateAsync({
+        id,
+        data: { status: 'SUBMITTED' as any },
+      });
+      toast({
+        title: 'Success',
+        description: 'Expense entry submitted for approval',
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.response?.data?.message || 'Failed to submit expense entry',
+        variant: 'destructive',
+      });
+    }
   };
 
-  const handleApproveExpenseEntry = (id: string) => {
-    setExpenseEntries(expenseEntries.map(entry =>
-      entry.id === id ? { ...entry, status: 'APPROVED' as const } : entry
-    ));
-    toast({
-      title: 'Success',
-      description: 'Expense entry approved',
-    });
+  const handleApproveExpenseEntry = async (id: string) => {
+    try {
+      await updateExpenseEntry.mutateAsync({
+        id,
+        data: { status: 'APPROVED' as any },
+      });
+      toast({
+        title: 'Success',
+        description: 'Expense entry approved',
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.response?.data?.message || 'Failed to approve expense entry',
+        variant: 'destructive',
+      });
+    }
   };
 
   const formatDuration = (hours: number) => {
@@ -286,6 +313,27 @@ export default function TimeExpensePage() {
   const totalExpenseAmount = expenseEntries
     .filter(e => e.status === 'APPROVED')
     .reduce((sum, e) => sum + e.amount, 0);
+
+  // Loading state
+  if (loadingTimeEntries || loadingExpenseEntries) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  // Error state
+  if (timeEntriesError || expenseEntriesError) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <div className="text-center">
+          <p className="text-destructive mb-2">Failed to load time & expense entries</p>
+          <Button onClick={() => window.location.reload()}>Retry</Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -563,6 +611,7 @@ export default function TimeExpensePage() {
             handleCreateTimeEntry(data);
           }
         }}
+        isSubmitting={createTimeEntry.isPending || updateTimeEntry.isPending}
       />
 
       {/* Expense Entry Dialog */}
@@ -577,6 +626,7 @@ export default function TimeExpensePage() {
             handleCreateExpenseEntry(data);
           }
         }}
+        isSubmitting={createExpenseEntry.isPending || updateExpenseEntry.isPending}
       />
     </div>
   );
@@ -586,12 +636,14 @@ function TimeEntryDialog({
   open,
   onOpenChange,
   timeEntry,
-  onSubmit
+  onSubmit,
+  isSubmitting = false,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   timeEntry: TimeEntry | null;
   onSubmit: (data: any) => void;
+  isSubmitting?: boolean;
 }) {
   const [formData, setFormData] = useState({
     jobNumber: timeEntry?.jobNumber || '',
@@ -681,11 +733,18 @@ function TimeEntryDialog({
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
             Cancel
           </Button>
-          <Button onClick={() => onSubmit(formData)}>
-            {timeEntry ? 'Update' : 'Create'}
+          <Button onClick={() => onSubmit(formData)} disabled={isSubmitting}>
+            {isSubmitting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              timeEntry ? 'Update' : 'Create'
+            )}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -697,12 +756,14 @@ function ExpenseEntryDialog({
   open,
   onOpenChange,
   expenseEntry,
-  onSubmit
+  onSubmit,
+  isSubmitting = false,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   expenseEntry: ExpenseEntry | null;
   onSubmit: (data: any) => void;
+  isSubmitting?: boolean;
 }) {
   const [formData, setFormData] = useState({
     jobNumber: expenseEntry?.jobNumber || '',
@@ -813,11 +874,18 @@ function ExpenseEntryDialog({
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
             Cancel
           </Button>
-          <Button onClick={() => onSubmit(formData)}>
-            {expenseEntry ? 'Update' : 'Create'}
+          <Button onClick={() => onSubmit(formData)} disabled={isSubmitting}>
+            {isSubmitting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              expenseEntry ? 'Update' : 'Create'
+            )}
           </Button>
         </DialogFooter>
       </DialogContent>

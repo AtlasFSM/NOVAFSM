@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Plus, Edit, Trash2, MapPin, Award, Calendar, Clock } from 'lucide-react';
+import { Plus, Edit, Trash2, MapPin, Award, Calendar, Clock, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Table,
@@ -32,143 +32,117 @@ import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import {
+  useTechnicians,
+  useCreateTechnician,
+  useUpdateTechnician,
+  useDeleteTechnician,
+  useUpdateTechnicianStatus,
+  type Technician as APITechnician,
+} from '@/hooks/use-technicians';
 
-interface Technician {
-  id: string;
-  userId: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  phone?: string;
-  skills: string[];
-  certifications: string[];
-  availability: {
-    monday?: { start: string; end: string };
-    tuesday?: { start: string; end: string };
-    wednesday?: { start: string; end: string };
-    thursday?: { start: string; end: string };
-    friday?: { start: string; end: string };
-    saturday?: { start: string; end: string };
-    sunday?: { start: string; end: string };
-  };
-  currentLocation?: {
-    lat: number;
-    lng: number;
-    timestamp: string;
-  };
-  status: 'AVAILABLE' | 'ON_JOB' | 'OFF_DUTY';
-  activeJobsCount?: number;
-  completedJobsCount?: number;
-}
+type Technician = APITechnician;
 
 export default function TechniciansPage() {
   const { toast } = useToast();
   const [showDialog, setShowDialog] = useState(false);
   const [editingTechnician, setEditingTechnician] = useState<Technician | null>(null);
 
-  // Mock data - replace with actual API calls
-  const [technicians, setTechnicians] = useState<Technician[]>([
-    {
-      id: '1',
-      userId: 'user1',
-      firstName: 'John',
-      lastName: 'Smith',
-      email: 'john.smith@example.com',
-      phone: '+1-555-0100',
-      skills: ['HVAC', 'Electrical', 'Plumbing'],
-      certifications: ['Red Seal HVAC', 'Electrical License'],
-      availability: {
-        monday: { start: '08:00', end: '17:00' },
-        tuesday: { start: '08:00', end: '17:00' },
-        wednesday: { start: '08:00', end: '17:00' },
-        thursday: { start: '08:00', end: '17:00' },
-        friday: { start: '08:00', end: '17:00' },
-      },
-      status: 'ON_JOB',
-      activeJobsCount: 2,
-      completedJobsCount: 145,
-    },
-    {
-      id: '2',
-      userId: 'user2',
-      firstName: 'Sarah',
-      lastName: 'Johnson',
-      email: 'sarah.johnson@example.com',
-      phone: '+1-555-0101',
-      skills: ['HVAC', 'Refrigeration'],
-      certifications: ['HVAC Technician', 'EPA 608 Universal'],
-      availability: {
-        monday: { start: '07:00', end: '16:00' },
-        tuesday: { start: '07:00', end: '16:00' },
-        wednesday: { start: '07:00', end: '16:00' },
-        thursday: { start: '07:00', end: '16:00' },
-        friday: { start: '07:00', end: '16:00' },
-      },
-      status: 'AVAILABLE',
-      activeJobsCount: 0,
-      completedJobsCount: 98,
-    },
-  ]);
+  // API hooks
+  const { data: technicians = [], isLoading, error } = useTechnicians();
+  const createTechnician = useCreateTechnician();
+  const updateTechnician = useUpdateTechnician();
+  const deleteTechnician = useDeleteTechnician();
+  const updateStatus = useUpdateTechnicianStatus();
 
-  const handleCreateTechnician = (formData: any) => {
-    const newTechnician: Technician = {
-      id: Date.now().toString(),
-      userId: Date.now().toString(),
-      firstName: formData.firstName,
-      lastName: formData.lastName,
-      email: formData.email,
-      phone: formData.phone,
-      skills: formData.skills ? formData.skills.split(',').map((s: string) => s.trim()) : [],
-      certifications: formData.certifications ? formData.certifications.split(',').map((c: string) => c.trim()) : [],
-      availability: {},
-      status: 'AVAILABLE',
-      activeJobsCount: 0,
-      completedJobsCount: 0,
-    };
-    setTechnicians([...technicians, newTechnician]);
-    setShowDialog(false);
-    toast({
-      title: 'Success',
-      description: 'Technician created successfully',
-    });
-  };
-
-  const handleUpdateTechnician = (id: string, formData: any) => {
-    setTechnicians(technicians.map(tech =>
-      tech.id === id ? {
-        ...tech,
+  const handleCreateTechnician = async (formData: any) => {
+    try {
+      await createTechnician.mutateAsync({
         firstName: formData.firstName,
         lastName: formData.lastName,
         email: formData.email,
-        phone: formData.phone,
+        phone: formData.phone || undefined,
         skills: formData.skills ? formData.skills.split(',').map((s: string) => s.trim()) : [],
         certifications: formData.certifications ? formData.certifications.split(',').map((c: string) => c.trim()) : [],
-      } : tech
-    ));
-    setShowDialog(false);
-    setEditingTechnician(null);
-    toast({
-      title: 'Success',
-      description: 'Technician updated successfully',
-    });
+        availability: {},
+        status: 'AVAILABLE',
+      });
+      setShowDialog(false);
+      toast({
+        title: 'Success',
+        description: 'Technician created successfully',
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.response?.data?.message || 'Failed to create technician',
+        variant: 'destructive',
+      });
+    }
   };
 
-  const handleDeleteTechnician = (id: string) => {
-    setTechnicians(technicians.filter(tech => tech.id !== id));
-    toast({
-      title: 'Success',
-      description: 'Technician deleted successfully',
-    });
+  const handleUpdateTechnician = async (id: string, formData: any) => {
+    try {
+      await updateTechnician.mutateAsync({
+        id,
+        data: {
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          email: formData.email,
+          phone: formData.phone,
+          skills: formData.skills ? formData.skills.split(',').map((s: string) => s.trim()) : [],
+          certifications: formData.certifications ? formData.certifications.split(',').map((c: string) => c.trim()) : [],
+        },
+      });
+      setShowDialog(false);
+      setEditingTechnician(null);
+      toast({
+        title: 'Success',
+        description: 'Technician updated successfully',
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.response?.data?.message || 'Failed to update technician',
+        variant: 'destructive',
+      });
+    }
   };
 
-  const handleUpdateStatus = (id: string, status: Technician['status']) => {
-    setTechnicians(technicians.map(tech =>
-      tech.id === id ? { ...tech, status } : tech
-    ));
-    toast({
-      title: 'Success',
-      description: `Technician status updated to ${status}`,
-    });
+  const handleDeleteTechnician = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this technician?')) {
+      return;
+    }
+
+    try {
+      await deleteTechnician.mutateAsync(id);
+      toast({
+        title: 'Success',
+        description: 'Technician deleted successfully',
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.response?.data?.message || 'Failed to delete technician',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleUpdateStatus = async (id: string, status: Technician['status']) => {
+    try {
+      await updateStatus.mutateAsync({ id, status });
+      toast({
+        title: 'Success',
+        description: `Technician status updated to ${status}`,
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.response?.data?.message || 'Failed to update status',
+        variant: 'destructive',
+      });
+    }
   };
 
   const getInitials = (firstName: string, lastName: string) => {
@@ -190,6 +164,27 @@ export default function TechniciansPage() {
 
   const availableTechnicians = technicians.filter(t => t.status === 'AVAILABLE').length;
   const onJobTechnicians = technicians.filter(t => t.status === 'ON_JOB').length;
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <div className="text-center">
+          <p className="text-destructive mb-2">Failed to load technicians</p>
+          <Button onClick={() => window.location.reload()}>Retry</Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -393,6 +388,7 @@ export default function TechniciansPage() {
             handleCreateTechnician(data);
           }
         }}
+        isSubmitting={createTechnician.isPending || updateTechnician.isPending}
       />
     </div>
   );
@@ -402,12 +398,14 @@ function TechnicianDialog({
   open,
   onOpenChange,
   technician,
-  onSubmit
+  onSubmit,
+  isSubmitting = false,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   technician: Technician | null;
   onSubmit: (data: any) => void;
+  isSubmitting?: boolean;
 }) {
   const [formData, setFormData] = useState({
     firstName: technician?.firstName || '',
@@ -497,11 +495,18 @@ function TechnicianDialog({
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
             Cancel
           </Button>
-          <Button onClick={() => onSubmit(formData)}>
-            {technician ? 'Update' : 'Create'}
+          <Button onClick={() => onSubmit(formData)} disabled={isSubmitting || !formData.firstName || !formData.lastName || !formData.email}>
+            {isSubmitting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              technician ? 'Update' : 'Create'
+            )}
           </Button>
         </DialogFooter>
       </DialogContent>
