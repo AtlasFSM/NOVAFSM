@@ -10,6 +10,7 @@ import { UpdatePriceItemDto } from './dto/update-price-item.dto';
 import { QueryPriceItemDto } from './dto/query-price-item.dto';
 import { BulkCreatePriceItemDto } from './dto/bulk-create-price-item.dto';
 import { Prisma } from '@prisma/client';
+import { Decimal } from '@prisma/client/runtime/library';
 
 @Injectable()
 export class PriceItemsService {
@@ -140,7 +141,7 @@ export class PriceItemsService {
         name: dto.name,
         description: dto.description,
         unit: dto.unit || 'EA',
-        defaultRate: new Prisma.Decimal(dto.defaultRate),
+        defaultRate: new Decimal(dto.defaultRate),
         taxCode: dto.taxCode,
         isActive: dto.isActive ?? true,
         category: dto.category,
@@ -195,7 +196,7 @@ export class PriceItemsService {
     };
 
     if (dto.defaultRate !== undefined) {
-      updateData.defaultRate = new Prisma.Decimal(dto.defaultRate);
+      updateData.defaultRate = new Decimal(dto.defaultRate);
     }
 
     const priceItem = await this.prisma.priceItem.update({
@@ -307,7 +308,7 @@ export class PriceItemsService {
             name: item.name,
             description: item.description,
             unit: item.unit || 'EA',
-            defaultRate: new Prisma.Decimal(item.defaultRate),
+            defaultRate: new Decimal(item.defaultRate),
             taxCode: item.taxCode,
             isActive: item.isActive ?? true,
             category: item.category,

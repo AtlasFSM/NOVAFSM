@@ -304,7 +304,7 @@ export class TimeEntriesService {
       return acc;
     }, {} as Record<string, number>);
 
-    const totalMinutes = Object.values(totalByType).reduce((sum, val) => sum + val, 0);
+    const totalMinutes = Object.values(totalByType).reduce((sum: number, val: number) => sum + val, 0) as number;
 
     return {
       success: true,

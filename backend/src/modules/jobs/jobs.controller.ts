@@ -164,7 +164,6 @@ export class JobsController {
 
       // Technicians cannot change certain fields
       delete dto.assignedTechnicianId;
-      delete dto.customerId;
       delete dto.siteId;
     }
 

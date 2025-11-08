@@ -185,6 +185,7 @@ export class EmailService {
       dueDate: invoiceData.dueDate,
       paidDate: invoiceData.paidDate,
       status: invoiceData.status,
+      createdAt: invoiceData.createdAt,
       customer: {
         name: invoiceData.customer.name,
         email: invoiceData.customer.email,

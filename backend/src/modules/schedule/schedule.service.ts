@@ -3,7 +3,7 @@ import { PrismaService } from '../../common/prisma/prisma.service';
 import { CheckAvailabilityDto } from './dto/check-availability.dto';
 import { GetScheduleDto } from './dto/get-schedule.dto';
 
-interface TimeSlot {
+export interface TimeSlot {
   start: Date;
   end: Date;
   jobId?: string;
