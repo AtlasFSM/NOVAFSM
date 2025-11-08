@@ -12,6 +12,17 @@ import { Prisma } from '@prisma/client';
  * prisma.$use(softDeleteMiddleware);
  */
 
+// Type definitions for Prisma middleware
+type MiddlewareParams = {
+  model?: string;
+  action: string;
+  args: any;
+  dataPath: string[];
+  runInTransaction: boolean;
+};
+
+type MiddlewareNext = (params: MiddlewareParams) => Promise<any>;
+
 // Models that support soft delete (have deletedAt field)
 const SOFT_DELETE_MODELS = [
   'organization',
@@ -36,7 +47,7 @@ const SOFT_DELETE_MODELS = [
   'formResponse',
 ];
 
-export const softDeleteMiddleware: Prisma.Middleware = async (params, next) => {
+export const softDeleteMiddleware = async (params: MiddlewareParams, next: MiddlewareNext) => {
   const model = params.model?.toLowerCase();
 
   // Only apply to models with soft delete support

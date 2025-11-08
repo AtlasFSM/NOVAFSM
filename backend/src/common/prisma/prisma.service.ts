@@ -3,6 +3,19 @@ import { PrismaClient } from '@prisma/client';
 import { softDeleteMiddleware } from './soft-delete.middleware';
 
 /**
+ * Type definitions for Prisma middleware
+ */
+type MiddlewareParams = {
+  model?: string;
+  action: string;
+  args: any;
+  dataPath: string[];
+  runInTransaction: boolean;
+};
+
+type MiddlewareNext = (params: MiddlewareParams) => Promise<any>;
+
+/**
  * Prisma Service with tenant isolation middleware and soft delete support
  * Automatically injects tenantId filter on all queries and handles soft deletes
  */
@@ -61,7 +74,7 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
     this.$use(softDeleteMiddleware);
 
     // Middleware to inject tenantId filter on all queries
-    this.$use(async (params, next) => {
+    this.$use(async (params: MiddlewareParams, next: MiddlewareNext) => {
       // Models that don't require tenant filtering
       const excludedModels = ['Organization', 'TokenBlacklist'];
 
