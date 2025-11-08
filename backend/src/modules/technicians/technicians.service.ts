@@ -32,7 +32,7 @@ export class TechniciansService {
 
     // Get job counts for each technician
     const techniciansWithCounts = await Promise.all(
-      technicians.map(async (tech) => {
+      technicians.map(async (tech: any) => {
         const activeJobsCount = await this.prisma.job.count({
           where: {
             tenantId,
