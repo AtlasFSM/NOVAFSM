@@ -161,7 +161,7 @@ describe('UsersService', () => {
         email: createUserDto.email,
       });
 
-      await expect(service.create(tenantId, createUserDto)).rejects.toThrow(
+      await expect(service.create(createUserDto, tenantId)).rejects.toThrow(
         ConflictException,
       );
     });
@@ -176,7 +176,7 @@ describe('UsersService', () => {
         ...createUserDto,
       });
 
-      await service.create(tenantId, createUserDto);
+      await service.create(createUserDto, tenantId);
 
       expect(bcryptSpy).toHaveBeenCalledWith(createUserDto.password, 12);
     });
@@ -207,17 +207,17 @@ describe('UsersService', () => {
       mockPrismaService.user.findUnique.mockResolvedValue(existingUser);
       mockPrismaService.user.update.mockResolvedValue(updatedUser);
 
-      const result = await service.update(tenantId, userId, updateDto);
+      const result = await service.update(userId, updateDto, tenantId);
 
-      expect(result.firstName).toBe(updateDto.firstName);
-      expect(result.lastName).toBe(updateDto.lastName);
+      expect(result.data.firstName).toBe(updateDto.firstName);
+      expect(result.data.lastName).toBe(updateDto.lastName);
     });
 
     it('should throw NotFoundException if user not found', async () => {
       mockPrismaService.user.findUnique.mockResolvedValue(null);
 
       await expect(
-        service.update('tenant-123', 'non-existent-id', { firstName: 'Test' }),
+        service.update('non-existent-id', { firstName: 'Test' }, 'tenant-123'),
       ).rejects.toThrow(NotFoundException);
     });
   });
