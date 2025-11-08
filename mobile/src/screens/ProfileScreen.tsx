@@ -11,7 +11,7 @@ import { useSync } from '../hooks/use-sync';
 
 export default function ProfileScreen() {
   const { user, logout } = useAuthStore();
-  const { lastSyncAt, isSyncing, syncJobs } = useSync();
+  const { syncStatus, sync } = useSync();
 
   const handleLogout = () => {
     Alert.alert('Logout', 'Are you sure you want to logout?', [
@@ -25,7 +25,7 @@ export default function ProfileScreen() {
   };
 
   const handleSync = async () => {
-    await syncJobs();
+    await sync();
     Alert.alert('Success', 'Data synced successfully');
   };
 
@@ -49,16 +49,16 @@ export default function ProfileScreen() {
         <View style={styles.infoRow}>
           <Text style={styles.infoLabel}>Last Sync</Text>
           <Text style={styles.infoValue}>
-            {lastSyncAt ? new Date(lastSyncAt).toLocaleString() : 'Never'}
+            {syncStatus.lastSyncAt ? new Date(syncStatus.lastSyncAt).toLocaleString() : 'Never'}
           </Text>
         </View>
         <TouchableOpacity
-          style={[styles.button, isSyncing && styles.buttonDisabled]}
+          style={[styles.button, syncStatus.isSyncing && styles.buttonDisabled]}
           onPress={handleSync}
-          disabled={isSyncing}
+          disabled={syncStatus.isSyncing}
         >
           <Text style={styles.buttonText}>
-            {isSyncing ? 'Syncing...' : 'Sync Now'}
+            {syncStatus.isSyncing ? 'Syncing...' : 'Sync Now'}
           </Text>
         </TouchableOpacity>
       </View>
@@ -67,11 +67,11 @@ export default function ProfileScreen() {
         <Text style={styles.sectionTitle}>Organization</Text>
         <View style={styles.infoRow}>
           <Text style={styles.infoLabel}>Name</Text>
-          <Text style={styles.infoValue}>{user?.organizationName || 'N/A'}</Text>
+          <Text style={styles.infoValue}>{user?.organization?.name || 'N/A'}</Text>
         </View>
         <View style={styles.infoRow}>
           <Text style={styles.infoLabel}>Currency</Text>
-          <Text style={styles.infoValue}>{user?.currency || 'CAD'}</Text>
+          <Text style={styles.infoValue}>{user?.organization?.currency || 'CAD'}</Text>
         </View>
       </View>
 

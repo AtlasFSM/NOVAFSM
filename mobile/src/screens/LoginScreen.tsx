@@ -22,7 +22,7 @@ export default function LoginScreen() {
     }
 
     try {
-      await login(email, password);
+      await login({ email, password });
     } catch (error: any) {
       Alert.alert('Login Failed', error.message || 'Invalid credentials');
     }

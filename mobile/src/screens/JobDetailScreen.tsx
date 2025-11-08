@@ -17,7 +17,7 @@ import { getJobPhotos, getJobSignatures, insertJobPhoto, insertJobSignature } fr
 import { queueJobUpdate } from '../services/sync';
 import PhotoCapture from '../components/PhotoCapture';
 import SignatureCapture from '../components/SignatureCapture';
-import { LocalJobPhoto, LocalJobSignature } from '../types';
+import { LocalJobPhoto, LocalJobSignature, JobStatus, SignatureType } from '../types';
 
 export default function JobDetailScreen({ route, navigation }: any) {
   const { jobId } = route.params;
@@ -55,7 +55,7 @@ export default function JobDetailScreen({ route, navigation }: any) {
   const handleCheckIn = async () => {
     try {
       await queueJobUpdate(jobId, {
-        status: 'IN_PROGRESS',
+        status: JobStatus.IN_PROGRESS,
         startedAt: new Date().toISOString(),
       });
       Alert.alert('Check In', 'Job started successfully');
@@ -68,7 +68,7 @@ export default function JobDetailScreen({ route, navigation }: any) {
   const handleCheckOut = async () => {
     try {
       await queueJobUpdate(jobId, {
-        status: 'COMPLETED',
+        status: JobStatus.COMPLETED,
         completedAt: new Date().toISOString(),
       });
       Alert.alert('Check Out', 'Job completed successfully');
@@ -91,7 +91,7 @@ export default function JobDetailScreen({ route, navigation }: any) {
         uri,
         uploaded: false,
         uploadedUrl: null,
-        caption: null,
+        caption: undefined,
         createdAt: new Date().toISOString(),
       });
 
@@ -115,7 +115,7 @@ export default function JobDetailScreen({ route, navigation }: any) {
       await insertJobSignature({
         id: signatureId,
         jobId,
-        type: 'CUSTOMER',
+        type: SignatureType.CUSTOMER,
         data: signatureData,
         uploaded: false,
         signerName: job.customerName,

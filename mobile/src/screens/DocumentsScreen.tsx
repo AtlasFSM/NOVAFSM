@@ -15,7 +15,7 @@ import { Document, DocumentType } from '../types';
 
 export default function DocumentsScreen({ navigation }: any) {
   const { documents, isLoading, refreshDocuments } = useDocuments();
-  const { isSyncing } = useSync();
+  const { syncStatus } = useSync();
   const [isOnline, setIsOnline] = useState(true);
 
   useEffect(() => {
@@ -102,7 +102,7 @@ export default function DocumentsScreen({ navigation }: any) {
             <Text style={styles.offlineText}>Offline</Text>
           </View>
         )}
-        {isSyncing && (
+        {syncStatus.isSyncing && (
           <ActivityIndicator size="small" color="#3b82f6" style={{ marginLeft: 8 }} />
         )}
         <TouchableOpacity

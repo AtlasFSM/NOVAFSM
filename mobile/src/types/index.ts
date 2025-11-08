@@ -6,6 +6,12 @@ export interface User {
   lastName: string;
   role: 'ADMIN' | 'DISPATCHER' | 'TECHNICIAN';
   tenantId: string;
+  organization?: {
+    id: string;
+    name: string;
+    slug: string;
+    currency?: string;
+  };
 }
 
 export interface AuthTokens {
@@ -244,6 +250,8 @@ export interface JobUpdateRequest {
   checkInLocation?: LocationData;
   checkOutLocation?: LocationData;
   notes?: string;
+  startedAt?: string;
+  completedAt?: string;
 }
 
 // Check-in/Check-out

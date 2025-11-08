@@ -23,8 +23,8 @@ interface Job {
 }
 
 export default function JobsScreen({ navigation }: any) {
-  const { jobs, isLoading, refetch } = useJobs();
-  const { syncJobs, isSyncing } = useSync();
+  const { jobs, isLoading, refreshJobs } = useJobs();
+  const { syncStatus, sync } = useSync();
   const [isOnline, setIsOnline] = useState(true);
 
   useEffect(() => {
@@ -36,9 +36,9 @@ export default function JobsScreen({ navigation }: any) {
 
   const handleRefresh = async () => {
     if (isOnline) {
-      await syncJobs();
+      await sync();
     }
-    await refetch();
+    await refreshJobs();
   };
 
   const getStatusColor = (status: string) => {
@@ -56,7 +56,7 @@ export default function JobsScreen({ navigation }: any) {
     }
   };
 
-  const renderJob = ({ item }: { item: Job }) => (
+  const renderJob = ({ item }: { item: any }) => (
     <TouchableOpacity
       style={styles.jobCard}
       onPress={() => navigation.navigate('JobDetail', { jobId: item.id })}
@@ -95,7 +95,7 @@ export default function JobsScreen({ navigation }: any) {
             <Text style={styles.offlineText}>Offline</Text>
           </View>
         )}
-        {isSyncing && (
+        {syncStatus.isSyncing && (
           <ActivityIndicator size="small" color="#3b82f6" style={{ marginLeft: 8 }} />
         )}
       </View>

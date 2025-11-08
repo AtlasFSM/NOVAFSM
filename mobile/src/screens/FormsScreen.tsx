@@ -15,7 +15,7 @@ import { Form, FormStatus } from '../types';
 
 export default function FormsScreen({ navigation }: any) {
   const { forms, isLoading, refreshForms } = useForms();
-  const { isSyncing } = useSync();
+  const { syncStatus } = useSync();
   const [isOnline, setIsOnline] = useState(true);
 
   useEffect(() => {
@@ -107,7 +107,7 @@ export default function FormsScreen({ navigation }: any) {
             <Text style={styles.offlineText}>Offline</Text>
           </View>
         )}
-        {isSyncing && (
+        {syncStatus.isSyncing && (
           <ActivityIndicator size="small" color="#3b82f6" style={{ marginLeft: 8 }} />
         )}
       </View>

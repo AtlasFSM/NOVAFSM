@@ -15,7 +15,7 @@ import { Asset, AssetStatus } from '../types';
 
 export default function AssetsScreen({ navigation }: any) {
   const { assets, isLoading, refreshAssets } = useAssets();
-  const { isSyncing } = useSync();
+  const { syncStatus } = useSync();
   const [isOnline, setIsOnline] = useState(true);
 
   useEffect(() => {
@@ -83,7 +83,7 @@ export default function AssetsScreen({ navigation }: any) {
             <Text style={styles.offlineText}>Offline</Text>
           </View>
         )}
-        {isSyncing && (
+        {syncStatus.isSyncing && (
           <ActivityIndicator size="small" color="#3b82f6" style={{ marginLeft: 8 }} />
         )}
       </View>
