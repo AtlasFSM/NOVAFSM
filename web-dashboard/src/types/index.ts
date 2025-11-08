@@ -212,6 +212,17 @@ export interface UpdateQuoteDto extends Partial<CreateQuoteDto> {
   status?: QuoteStatus;
 }
 
+export interface InvoiceLine {
+  sku?: string;
+  description: string;
+  quantity: number;
+  unit: string;
+  unitPrice: number;
+  discounts?: number;
+  taxes?: Array<{ code: string; rate: number; amount: number }>;
+  amount: number;
+}
+
 export interface Invoice {
   id: string;
   tenantId: string;
@@ -224,9 +235,14 @@ export interface Invoice {
   subtotal: number;
   taxTotal: number;
   total: number;
-  dueDate: string | null;
-  paidAt: string | null;
-  createdById: string;
+  lines?: InvoiceLine[];
+  notes?: string;
+  termsConditions?: string;
+  issuedAt?: string;
+  dueAt?: string;
+  dueDate?: string | null;
+  paidAt?: string | null;
+  createdById?: string;
   createdAt: string;
   updatedAt: string;
   customer?: Customer;
@@ -312,6 +328,7 @@ export interface Job {
   timeEntries?: TimeEntry[];
   inventoryUsage?: JobInventoryUsage[];
   history?: JobHistory[];
+  invoice?: Invoice;
 
   createdAt: string;
   updatedAt: string;
