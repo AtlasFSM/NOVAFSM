@@ -14,6 +14,10 @@ import {
   BarChart3,
   ChevronLeft,
   ChevronRight,
+  UserCog,
+  MapPin,
+  Clock,
+  DollarSign,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -26,10 +30,14 @@ interface SidebarProps {
 const navItems = [
   { href: '/dashboard', icon: Home, label: 'Dashboard' },
   { href: '/dashboard/customers', icon: Users, label: 'Customers' },
+  { href: '/dashboard/sites', icon: MapPin, label: 'Sites' },
   { href: '/dashboard/quotes', icon: FileText, label: 'Quotes' },
   { href: '/dashboard/jobs', icon: Briefcase, label: 'Jobs' },
   { href: '/dashboard/schedule', icon: Calendar, label: 'Schedule' },
+  { href: '/dashboard/technicians', icon: UserCog, label: 'Technicians' },
   { href: '/dashboard/invoices', icon: Receipt, label: 'Invoices' },
+  { href: '/dashboard/time-expense', icon: Clock, label: 'Time & Expense' },
+  { href: '/dashboard/pricing', icon: DollarSign, label: 'Pricing' },
   { href: '/dashboard/inventory', icon: Package, label: 'Inventory' },
   { href: '/dashboard/reports', icon: BarChart3, label: 'Reports' },
   { href: '/dashboard/settings', icon: Settings, label: 'Settings' },
