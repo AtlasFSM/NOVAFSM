@@ -309,6 +309,130 @@ class ApiClient {
     await this.client.put(`/jobs/${jobId}/time-entries/${timeEntryId}`, updates, { headers });
   }
 
+  // Form Assignment methods
+  async getFormAssignments(params?: {
+    status?: string;
+    assignedType?: string;
+  }): Promise<PaginatedResponse<any>> {
+    const { data } = await this.client.get<PaginatedResponse<any>>('/forms/assignments', { params });
+    return data;
+  }
+
+  async getFormAssignmentById(id: string): Promise<any> {
+    const { data } = await this.client.get<ApiResponse<any>>(`/forms/assignments/${id}`);
+    return data.data;
+  }
+
+  async submitFormResponse(
+    assignmentId: string,
+    responseData: {
+      responses: Record<string, any>;
+      latitude?: number;
+      longitude?: number;
+      deviceInfo?: any;
+    },
+    idempotencyKey: string
+  ): Promise<any> {
+    const headers = { 'Idempotency-Key': idempotencyKey };
+
+    const { data } = await this.client.post<ApiResponse<any>>(
+      `/forms/assignments/${assignmentId}/submit`,
+      responseData,
+      { headers }
+    );
+    return data.data;
+  }
+
+  async getFormResponse(id: string): Promise<any> {
+    const { data } = await this.client.get<ApiResponse<any>>(`/forms/responses/${id}`);
+    return data.data;
+  }
+
+  // Asset methods
+  async getAssets(params?: {
+    siteId?: string;
+    customerId?: string;
+    search?: string;
+  }): Promise<PaginatedResponse<any>> {
+    const { data } = await this.client.get<PaginatedResponse<any>>('/assets', { params });
+    return data;
+  }
+
+  async getAssetById(id: string): Promise<any> {
+    const { data } = await this.client.get<ApiResponse<any>>(`/assets/${id}`);
+    return data.data;
+  }
+
+  async updateAssetStatus(
+    id: string,
+    statusUpdate: { status: string; notes?: string },
+    idempotencyKey: string
+  ): Promise<any> {
+    const headers = { 'Idempotency-Key': idempotencyKey };
+
+    const { data } = await this.client.patch<ApiResponse<any>>(
+      `/assets/${id}/status`,
+      statusUpdate,
+      { headers }
+    );
+    return data.data;
+  }
+
+  // Document methods
+  async getDocuments(params?: {
+    jobId?: string;
+    customerId?: string;
+    type?: string;
+    search?: string;
+  }): Promise<PaginatedResponse<any>> {
+    const { data } = await this.client.get<PaginatedResponse<any>>('/documents', { params });
+    return data;
+  }
+
+  async getDocumentById(id: string): Promise<any> {
+    const { data } = await this.client.get<ApiResponse<any>>(`/documents/${id}`);
+    return data.data;
+  }
+
+  async getDocumentDownloadUrl(id: string): Promise<{ downloadUrl: string }> {
+    const { data } = await this.client.get<ApiResponse<{ downloadUrl: string }>>(
+      `/documents/${id}/download`
+    );
+    return data.data;
+  }
+
+  async uploadDocument(
+    documentData: {
+      name: string;
+      type: string;
+      jobId?: string;
+      customerId?: string;
+      file: Blob;
+    },
+    idempotencyKey: string
+  ): Promise<any> {
+    const headers = { 'Idempotency-Key': idempotencyKey };
+    const formData = new FormData();
+
+    formData.append('name', documentData.name);
+    formData.append('type', documentData.type);
+    if (documentData.jobId) formData.append('jobId', documentData.jobId);
+    if (documentData.customerId) formData.append('customerId', documentData.customerId);
+    formData.append('file', documentData.file);
+
+    const { data } = await this.client.post<ApiResponse<any>>(
+      '/documents',
+      formData,
+      {
+        headers: {
+          ...headers,
+          'Content-Type': 'multipart/form-data',
+        }
+      }
+    );
+    return data.data;
+  }
+
   // Generic request method for custom calls
   async request<T>(config: {
     method: string;

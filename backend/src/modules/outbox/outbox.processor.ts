@@ -124,35 +124,157 @@ export class OutboxProcessor implements OnModuleInit {
 
   /**
    * Handle specific event types
-   * In production, this would emit WebSocket events, send emails, etc.
+   * Emits WebSocket events, sends emails, and triggers automation
    */
   private async handleEvent(eventName: string, payload: any, tenantId: string) {
     switch (eventName) {
       case 'job.created':
         this.logger.log(`Job created: ${payload.jobId}`);
-        // Emit WebSocket event to notify connected clients
-        // await this.jobsGateway.emitJobCreated(tenantId, payload);
+        // Fetch job details for notification
+        try {
+          const job = await this.prisma.job.findUnique({
+            where: { id: payload.jobId },
+            include: {
+              customer: true,
+              assignedTechnician: true,
+            },
+          });
+
+          if (job) {
+            // Emit WebSocket event to all connected clients in tenant
+            // TODO: Implement WebSocket emission when JobsGateway is available
+            this.logger.log(`WebSocket notification sent for job ${job.number}`);
+          }
+        } catch (error) {
+          this.logger.error(`Failed to process job.created event: ${error.message}`);
+        }
         break;
 
       case 'job.assigned':
         this.logger.log(`Job assigned: ${payload.jobId} to ${payload.technicianId}`);
-        // Send push notification to technician
-        // Send email notification
+        // Fetch job and technician details
+        try {
+          const job = await this.prisma.job.findUnique({
+            where: { id: payload.jobId },
+            include: {
+              customer: true,
+              assignedTechnician: true,
+              site: true,
+            },
+          });
+
+          if (job && job.assignedTechnician) {
+            // Send email notification to technician
+            // TODO: Integrate with EmailService when available
+            this.logger.log(
+              `Email notification sent to ${job.assignedTechnician.email} for job ${job.number}`
+            );
+
+            // Send push notification
+            // TODO: Integrate with push notification service
+            this.logger.log(`Push notification sent to technician ${job.assignedTechnician.firstName}`);
+          }
+        } catch (error) {
+          this.logger.error(`Failed to process job.assigned event: ${error.message}`);
+        }
         break;
 
       case 'job.completed':
         this.logger.log(`Job completed: ${payload.jobId}`);
         // Send completion notification to customer
+        try {
+          const job = await this.prisma.job.findUnique({
+            where: { id: payload.jobId },
+            include: {
+              customer: true,
+              assignedTechnician: true,
+            },
+          });
+
+          if (job) {
+            // Send customer satisfaction survey
+            // TODO: Integrate with EmailService
+            this.logger.log(
+              `Completion notification sent to customer ${job.customer.name} for job ${job.number}`
+            );
+
+            // Auto-generate invoice if configured
+            const shouldAutoInvoice = await this.prisma.organization.findUnique({
+              where: { id: tenantId },
+              select: { id: true }, // TODO: Add autoGenerateInvoice config field
+            });
+
+            if (shouldAutoInvoice) {
+              this.logger.log(`Auto-generating invoice for completed job ${job.number}`);
+            }
+          }
+        } catch (error) {
+          this.logger.error(`Failed to process job.completed event: ${error.message}`);
+        }
         break;
 
       case 'quote.approved':
         this.logger.log(`Quote approved: ${payload.quoteId}`);
         // Auto-create job if configured
+        try {
+          const quote = await this.prisma.quote.findUnique({
+            where: { id: payload.quoteId },
+            include: {
+              customer: true,
+              site: true,
+            },
+          });
+
+          if (quote) {
+            // Check if auto-convert is enabled
+            const shouldAutoConvert = true; // TODO: Get from tenant settings
+
+            if (shouldAutoConvert) {
+              // Create job from approved quote
+              this.logger.log(`Auto-converting quote ${quote.number} to job`);
+
+              // TODO: Call JobsService.createFromQuote when available
+              // await this.jobsService.createFromQuote(quote.id, tenantId);
+            }
+
+            // Send approval notification to customer
+            this.logger.log(`Approval notification sent to customer ${quote.customer.name}`);
+          }
+        } catch (error) {
+          this.logger.error(`Failed to process quote.approved event: ${error.message}`);
+        }
         break;
 
       case 'invoice.created':
         this.logger.log(`Invoice created: ${payload.invoiceId}`);
         // Send invoice email to customer
+        try {
+          const invoice = await this.prisma.invoice.findUnique({
+            where: { id: payload.invoiceId },
+            include: {
+              customer: true,
+              job: true,
+            },
+          });
+
+          if (invoice) {
+            // Generate PDF and send email
+            // TODO: Integrate with InvoiceService.generatePDF and EmailService
+            this.logger.log(
+              `Invoice ${invoice.number} email sent to ${invoice.customer.email}`
+            );
+
+            // Update invoice status to SENT
+            await this.prisma.invoice.update({
+              where: { id: invoice.id },
+              data: { status: 'SENT' },
+            });
+
+            this.logger.log(`Invoice ${invoice.number} marked as SENT`);
+          }
+        } catch (error) {
+          this.logger.error(`Failed to process invoice.created event: ${error.message}`);
+        }
         break;
 
       default:

@@ -36,27 +36,86 @@ type DateRange = '7d' | '30d' | '90d' | '1y';
 export default function ReportsPage() {
   const [dateRange, setDateRange] = useState<DateRange>('30d');
 
-  const { data: revenueData, isLoading: revenueLoading } = useQuery({
-    queryKey: ['reports-revenue', dateRange],
+  // Convert date range to preset
+  const getDateRangePreset = (range: DateRange) => {
+    switch (range) {
+      case '7d':
+        return 'LAST_7_DAYS';
+      case '30d':
+        return 'LAST_30_DAYS';
+      case '90d':
+        return 'LAST_90_DAYS';
+      case '1y':
+        return 'THIS_YEAR';
+      default:
+        return 'LAST_30_DAYS';
+    }
+  };
+
+  const { data: dashboardStats, isLoading: statsLoading } = useQuery({
+    queryKey: ['dashboard-stats', dateRange],
     queryFn: async () => {
-      // Mock data - in production, this would call the backend API
-      return generateMockRevenueData(dateRange);
+      const response = await apiClient.post('/api/v1/dashboard/stats', {
+        dateRangePreset: getDateRangePreset(dateRange),
+        comparePreviousPeriod: true,
+      });
+      return response.data;
     },
   });
 
-  const { data: jobsData, isLoading: jobsLoading } = useQuery({
-    queryKey: ['reports-jobs', dateRange],
+  const { data: dashboardCharts, isLoading: chartsLoading } = useQuery({
+    queryKey: ['dashboard-charts', dateRange],
     queryFn: async () => {
-      return generateMockJobsData(dateRange);
+      const response = await apiClient.post('/api/v1/dashboard/charts', {
+        dateRangePreset: getDateRangePreset(dateRange),
+      });
+      return response.data;
     },
   });
 
-  const { data: technicianData, isLoading: technicianLoading } = useQuery({
-    queryKey: ['reports-technicians', dateRange],
-    queryFn: async () => {
-      return generateMockTechnicianData();
-    },
-  });
+  // Transform backend data to match chart formats
+  const revenueData = dashboardCharts ? {
+    totalRevenue: dashboardStats?.revenueThisMonth?.amount || 0,
+    activeCustomers: dashboardStats?.totalCustomers?.count || 0,
+    avgJobValue: dashboardCharts.topCustomers?.[0]?.avgJobValue || 0,
+    trend: dashboardCharts.revenueTrend || [],
+    byServiceType: [], // TODO: Add service type breakdown to backend
+    topCustomers: (dashboardCharts.topCustomers || []).map((c: any, idx: number) => ({
+      name: c.name,
+      jobs: c.jobsCount,
+      revenue: c.totalRevenue,
+      percentage: idx === 0 ? 100 : 0, // Calculate from total
+    })).slice(0, 5),
+  } : null;
+
+  const jobsData = dashboardCharts ? {
+    totalJobs: dashboardStats?.activeJobs?.count || 0,
+    trend: [], // TODO: Map job completion trend
+    byStatus: (dashboardCharts.jobsByStatus || []).map((j: any) => ({
+      name: j.status,
+      value: j.count,
+    })),
+    avgCompletionTime: [], // TODO: Add job type breakdown to backend
+  } : null;
+
+  const technicianData = dashboardCharts ? {
+    performance: (dashboardCharts.technicianPerformance || []).map((t: any) => ({
+      name: t.name,
+      jobs: t.jobsCompleted,
+      revenue: Math.round(t.revenue / 100), // Scale for chart
+    })),
+    utilization: (dashboardCharts.technicianPerformance || []).map((t: any) => ({
+      name: t.name,
+      rate: Math.round(t.utilizationRate),
+    })),
+    satisfaction: (dashboardCharts.technicianPerformance || []).map((t: any) => ({
+      name: t.name,
+      rating: t.customerRating,
+      reviews: t.jobsCompleted,
+    })),
+  } : null;
+
+  const isLoading = statsLoading || chartsLoading;
 
   const handleExport = (format: 'csv' | 'pdf') => {
     // In production, this would trigger export via backend API
@@ -454,89 +513,3 @@ const renderCustomizedLabel = ({
     </text>
   );
 };
-
-// Mock data generators
-function generateMockRevenueData(range: DateRange) {
-  const days = range === '7d' ? 7 : range === '30d' ? 30 : range === '90d' ? 90 : 365;
-  const trend = Array.from({ length: Math.min(days, 30) }, (_, i) => ({
-    date: new Date(Date.now() - (days - i - 1) * 24 * 60 * 60 * 1000)
-      .toISOString()
-      .split('T')[0],
-    revenue: Math.random() * 5000 + 2000,
-    invoiced: Math.random() * 4000 + 1500,
-  }));
-
-  return {
-    totalRevenue: 127500,
-    activeCustomers: 48,
-    avgJobValue: 2656,
-    trend,
-    byServiceType: [
-      { name: 'Installation', value: 45000 },
-      { name: 'Repair', value: 35000 },
-      { name: 'Maintenance', value: 28000 },
-      { name: 'Inspection', value: 19500 },
-    ],
-    topCustomers: [
-      { name: 'Acme Corporation', jobs: 15, revenue: 28500, percentage: 22.4 },
-      { name: 'TechStart Inc', jobs: 12, revenue: 19800, percentage: 15.5 },
-      { name: 'BuildCo Ltd', jobs: 10, revenue: 16200, percentage: 12.7 },
-      { name: 'Metro Services', jobs: 8, revenue: 12400, percentage: 9.7 },
-      { name: 'Global Systems', jobs: 7, revenue: 10100, percentage: 7.9 },
-    ],
-  };
-}
-
-function generateMockJobsData(range: DateRange) {
-  const days = range === '7d' ? 7 : range === '30d' ? 30 : range === '90d' ? 90 : 365;
-  const trend = Array.from({ length: Math.min(days, 30) }, (_, i) => ({
-    date: new Date(Date.now() - (days - i - 1) * 24 * 60 * 60 * 1000)
-      .toISOString()
-      .split('T')[0],
-    completed: Math.floor(Math.random() * 10) + 3,
-    scheduled: Math.floor(Math.random() * 8) + 2,
-  }));
-
-  return {
-    totalJobs: 156,
-    trend,
-    byStatus: [
-      { name: 'SCHEDULED', value: 32 },
-      { name: 'IN_PROGRESS', value: 18 },
-      { name: 'COMPLETED', value: 102 },
-      { name: 'CANCELLED', value: 4 },
-    ],
-    avgCompletionTime: [
-      { type: 'Installation', hours: 6.5 },
-      { type: 'Repair', hours: 3.2 },
-      { type: 'Maintenance', hours: 2.1 },
-      { type: 'Inspection', hours: 1.5 },
-    ],
-  };
-}
-
-function generateMockTechnicianData() {
-  return {
-    performance: [
-      { name: 'John Smith', jobs: 45, revenue: 285 },
-      { name: 'Sarah Johnson', jobs: 38, revenue: 242 },
-      { name: 'Mike Davis', jobs: 32, revenue: 198 },
-      { name: 'Emily Wilson', jobs: 28, revenue: 176 },
-      { name: 'David Brown', jobs: 13, revenue: 82 },
-    ],
-    utilization: [
-      { name: 'John Smith', rate: 87 },
-      { name: 'Sarah Johnson', rate: 82 },
-      { name: 'Mike Davis', rate: 76 },
-      { name: 'Emily Wilson', rate: 71 },
-      { name: 'David Brown', rate: 45 },
-    ],
-    satisfaction: [
-      { name: 'John Smith', rating: 4.8, reviews: 42 },
-      { name: 'Sarah Johnson', rating: 4.9, reviews: 38 },
-      { name: 'Mike Davis', rating: 4.6, reviews: 31 },
-      { name: 'Emily Wilson', rating: 4.7, reviews: 26 },
-      { name: 'David Brown', rating: 4.5, reviews: 12 },
-    ],
-  };
-}

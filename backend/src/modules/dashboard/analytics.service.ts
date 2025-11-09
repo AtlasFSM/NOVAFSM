@@ -545,7 +545,7 @@ export class AnalyticsService {
 
     const performanceData = await Promise.all(
       technicians.map(async (tech) => {
-        const [jobsCompleted, avgTime, revenue] = await Promise.all([
+        const [jobsCompleted, avgTime, revenue, timeEntries, ratings] = await Promise.all([
           this.prisma.job.count({
             where: {
               tenantId,
@@ -575,15 +575,51 @@ export class AnalyticsService {
             },
             _sum: { total: true },
           }),
+          // Get time entries for utilization calculation
+          this.prisma.timeEntry.aggregate({
+            where: {
+              tenantId,
+              userId: tech.id,
+              type: 'WORK',
+              startTime: { gte: startDate, lte: endDate },
+            },
+            _sum: { duration: true },
+          }),
+          // Get average customer ratings from form responses
+          this.prisma.formResponse.aggregate({
+            where: {
+              tenantId,
+              status: 'SUBMITTED',
+              submittedAt: { gte: startDate, lte: endDate },
+              assignment: {
+                job: {
+                  assignedToId: tech.id,
+                },
+              },
+              score: { not: null },
+            },
+            _avg: { score: true },
+          }),
         ]);
+
+        // Calculate utilization rate
+        // Total available minutes = number of days × 8 hours/day × 60 min/hour
+        const daysDiff = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+        const workDays = Math.max(1, Math.floor(daysDiff * 5 / 7)); // Assume 5-day work week
+        const availableMinutes = workDays * 8 * 60; // 8-hour work day
+        const workedMinutes = timeEntries._sum.duration || 0;
+        const utilizationRate = availableMinutes > 0 ? (workedMinutes / availableMinutes) * 100 : 0;
+
+        // Customer rating from form scores (typically 1-5 or 1-10 scale)
+        const customerRating = ratings._avg.score || 0;
 
         return {
           technicianId: tech.id,
           name: tech.name,
           jobsCompleted,
           avgCompletionTime: avgTime[0]?.avg ? Number(avgTime[0].avg.toFixed(2)) : 0,
-          utilizationRate: 0, // TODO: Calculate based on working hours
-          customerRating: 0, // TODO: Implement customer ratings
+          utilizationRate: Number(utilizationRate.toFixed(2)),
+          customerRating: Number(customerRating.toFixed(2)),
           revenue: revenue._sum.total?.toNumber() || 0,
         };
       })
