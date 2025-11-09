@@ -4,6 +4,9 @@ import { SequenceService } from '../../common/services/sequence.service';
 import { EmailService } from '../email/email.service';
 import { CreateInvoiceDto } from './dto/create-invoice.dto';
 import { UpdateInvoiceDto } from './dto/update-invoice.dto';
+import * as PDFDocument from 'pdfkit';
+import { ConfigService } from '@nestjs/config';
+import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 
 /**
  * Invoices Service - Manages invoice operations
@@ -11,12 +14,22 @@ import { UpdateInvoiceDto } from './dto/update-invoice.dto';
 @Injectable()
 export class InvoicesService {
   private readonly logger = new Logger(InvoicesService.name);
+  private readonly s3Client: S3Client;
 
   constructor(
     private prisma: PrismaService,
     private sequenceService: SequenceService,
     private emailService: EmailService,
-  ) {}
+    private configService: ConfigService,
+  ) {
+    this.s3Client = new S3Client({
+      region: this.configService.get('AWS_REGION') || 'us-east-1',
+      credentials: {
+        accessKeyId: this.configService.get('AWS_ACCESS_KEY_ID') || '',
+        secretAccessKey: this.configService.get('AWS_SECRET_ACCESS_KEY') || '',
+      },
+    });
+  }
 
   /**
    * Find all invoices with pagination and filtering
@@ -309,8 +322,7 @@ export class InvoicesService {
   }
 
   /**
-   * Generate PDF for invoice (stub implementation)
-   * In production, this would integrate with a PDF generation service
+   * Generate PDF for invoice
    */
   async generatePDF(id: string): Promise<{ url: string }> {
     const invoice = await this.prisma.invoice.findUnique({
@@ -325,13 +337,159 @@ export class InvoicesService {
       throw new NotFoundException(`Invoice with ID ${id} not found`);
     }
 
-    // Stub: Return a mock URL
-    // In production, this would generate a PDF and upload to S3
-    const mockUrl = `https://storage.example.com/invoices/${invoice.number}.pdf`;
+    return new Promise(async (resolve, reject) => {
+      try {
+        // Create PDF document
+        const doc = new PDFDocument({ margin: 50 });
+        const chunks: Buffer[] = [];
 
-    return {
-      url: mockUrl,
-    };
+        // Collect PDF data
+        doc.on('data', (chunk) => chunks.push(chunk));
+        doc.on('end', async () => {
+          try {
+            const pdfBuffer = Buffer.concat(chunks);
+
+            // Upload to S3
+            const bucketName = this.configService.get('AWS_S3_BUCKET') || 'novafsm-documents';
+            const key = `invoices/${invoice.tenantId}/${invoice.number}.pdf`;
+
+            const command = new PutObjectCommand({
+              Bucket: bucketName,
+              Key: key,
+              Body: pdfBuffer,
+              ContentType: 'application/pdf',
+              Metadata: {
+                invoiceId: invoice.id,
+                invoiceNumber: invoice.number,
+              },
+            });
+
+            await this.s3Client.send(command);
+
+            const url = `https://${bucketName}.s3.amazonaws.com/${key}`;
+
+            this.logger.log(`PDF generated for invoice ${invoice.number}: ${url}`);
+
+            resolve({ url });
+          } catch (error) {
+            reject(error);
+          }
+        });
+
+        // Generate PDF content
+        // Header
+        doc.fontSize(20).text('INVOICE', { align: 'right' });
+        doc.fontSize(10).text(invoice.number, { align: 'right' });
+        doc.moveDown();
+
+        // Company info (left side)
+        doc.fontSize(12).text('NoVaFSM', 50, 150);
+        doc.fontSize(10).text('Field Service Management', 50, 165);
+        doc.text('123 Business St', 50, 180);
+        doc.text('Toronto, ON M1A 1A1', 50, 195);
+        doc.text('Canada', 50, 210);
+
+        // Customer info (right side)
+        doc.fontSize(12).text('Bill To:', 300, 150);
+        doc.fontSize(10).text(invoice.customer.name, 300, 165);
+        if (invoice.customer.email) {
+          doc.text(invoice.customer.email, 300, 180);
+        }
+        if (invoice.customer.phone) {
+          doc.text(invoice.customer.phone, 300, 195);
+        }
+
+        // Invoice details
+        doc.moveDown(8);
+        const detailsY = 250;
+        doc.fontSize(10);
+        doc.text(`Invoice Date: ${new Date(invoice.issueDate).toLocaleDateString()}`, 50, detailsY);
+        doc.text(`Due Date: ${new Date(invoice.dueDate).toLocaleDateString()}`, 50, detailsY + 15);
+        doc.text(`Status: ${invoice.status}`, 50, detailsY + 30);
+        if (invoice.job) {
+          doc.text(`Job: ${invoice.job.number}`, 50, detailsY + 45);
+        }
+
+        // Line items table
+        const tableTop = 350;
+        doc.fontSize(10).font('Helvetica-Bold');
+
+        // Table headers
+        doc.text('Description', 50, tableTop);
+        doc.text('Quantity', 300, tableTop);
+        doc.text('Unit Price', 380, tableTop);
+        doc.text('Total', 480, tableTop, { align: 'right' });
+
+        // Line under headers
+        doc.moveTo(50, tableTop + 15).lineTo(550, tableTop + 15).stroke();
+
+        // Table rows
+        doc.font('Helvetica');
+        let yPosition = tableTop + 25;
+
+        const lineItems = invoice.lineItems as any[] || [];
+        lineItems.forEach((item) => {
+          doc.text(item.description, 50, yPosition, { width: 230 });
+          doc.text(item.quantity.toString(), 300, yPosition);
+          doc.text(`$${item.unitPrice.toFixed(2)}`, 380, yPosition);
+          doc.text(`$${item.total.toFixed(2)}`, 480, yPosition, { align: 'right' });
+          yPosition += 20;
+        });
+
+        // Totals
+        yPosition += 20;
+        doc.moveTo(50, yPosition).lineTo(550, yPosition).stroke();
+        yPosition += 15;
+
+        doc.font('Helvetica-Bold');
+        doc.text('Subtotal:', 380, yPosition);
+        doc.text(`$${invoice.subtotal.toFixed(2)}`, 480, yPosition, { align: 'right' });
+        yPosition += 20;
+
+        doc.text('Tax:', 380, yPosition);
+        doc.text(`$${invoice.tax.toFixed(2)}`, 480, yPosition, { align: 'right' });
+        yPosition += 20;
+
+        doc.fontSize(12);
+        doc.text('Total:', 380, yPosition);
+        doc.text(`$${invoice.total.toFixed(2)}`, 480, yPosition, { align: 'right' });
+        yPosition += 20;
+
+        if (invoice.paidAmount > 0) {
+          doc.fontSize(10);
+          doc.text('Paid:', 380, yPosition);
+          doc.text(`-$${invoice.paidAmount.toFixed(2)}`, 480, yPosition, { align: 'right' });
+          yPosition += 20;
+
+          doc.fontSize(12).fillColor('red');
+          doc.text('Balance Due:', 380, yPosition);
+          doc.text(`$${invoice.balanceDue.toFixed(2)}`, 480, yPosition, { align: 'right' });
+          doc.fillColor('black');
+        }
+
+        // Notes
+        if (invoice.notes) {
+          yPosition += 40;
+          doc.fontSize(10).font('Helvetica-Bold');
+          doc.text('Notes:', 50, yPosition);
+          doc.font('Helvetica');
+          doc.text(invoice.notes, 50, yPosition + 15, { width: 500 });
+        }
+
+        // Footer
+        doc.fontSize(8).text(
+          'Thank you for your business!',
+          50,
+          750,
+          { align: 'center', width: 500 }
+        );
+
+        // Finalize PDF
+        doc.end();
+      } catch (error) {
+        reject(error);
+      }
+    });
   }
 
   /**

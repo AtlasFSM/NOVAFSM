@@ -7,6 +7,9 @@ import { PrismaService } from '../../common/prisma/prisma.service';
 import { CreateCustomerDto } from './dto/create-customer.dto';
 import { UpdateCustomerDto } from './dto/update-customer.dto';
 import { QueryCustomersDto } from './dto/query-customers.dto';
+import { createObjectCsvStringifier } from 'csv-writer';
+import { Readable } from 'stream';
+import * as csvParser from 'csv-parser';
 
 @Injectable()
 export class CustomersService {
@@ -277,46 +280,176 @@ export class CustomersService {
   }
 
   /**
-   * Export customers to CSV (stub for future implementation)
+   * Export customers to CSV
    */
   async exportCustomers(tenantId: string) {
-    // TODO: Implement CSV export functionality
-    // This would typically use a library like csv-writer or fast-csv
-    // to generate a CSV file with customer data
-
     const customers = await this.prisma.customer.findMany({
       where: { tenantId },
       orderBy: { name: 'asc' },
+      include: {
+        _count: {
+          select: { sites: true, jobs: true, quotes: true, invoices: true },
+        },
+      },
     });
+
+    // Define CSV columns
+    const csvStringifier = createObjectCsvStringifier({
+      header: [
+        { id: 'name', title: 'Name' },
+        { id: 'email', title: 'Email' },
+        { id: 'phone', title: 'Phone' },
+        { id: 'status', title: 'Status' },
+        { id: 'type', title: 'Type' },
+        { id: 'billingAddressStreet', title: 'Billing Street' },
+        { id: 'billingAddressCity', title: 'Billing City' },
+        { id: 'billingAddressProvince', title: 'Billing Province' },
+        { id: 'billingAddressPostalCode', title: 'Billing Postal Code' },
+        { id: 'billingAddressCountry', title: 'Billing Country' },
+        { id: 'notes', title: 'Notes' },
+        { id: 'sitesCount', title: 'Sites Count' },
+        { id: 'jobsCount', title: 'Jobs Count' },
+        { id: 'quotesCount', title: 'Quotes Count' },
+        { id: 'invoicesCount', title: 'Invoices Count' },
+        { id: 'createdAt', title: 'Created At' },
+      ],
+    });
+
+    // Transform customers data for CSV
+    const records = customers.map((customer) => ({
+      name: customer.name,
+      email: customer.email || '',
+      phone: customer.phone || '',
+      status: customer.status,
+      type: customer.type,
+      billingAddressStreet: customer.billingAddress?.['street'] || '',
+      billingAddressCity: customer.billingAddress?.['city'] || '',
+      billingAddressProvince: customer.billingAddress?.['province'] || '',
+      billingAddressPostalCode: customer.billingAddress?.['postalCode'] || '',
+      billingAddressCountry: customer.billingAddress?.['country'] || 'Canada',
+      notes: customer.notes || '',
+      sitesCount: customer._count.sites,
+      jobsCount: customer._count.jobs,
+      quotesCount: customer._count.quotes,
+      invoicesCount: customer._count.invoices,
+      createdAt: customer.createdAt.toISOString(),
+    }));
+
+    // Generate CSV content
+    const header = csvStringifier.getHeaderString();
+    const body = csvStringifier.stringifyRecords(records);
+    const csvContent = header + body;
 
     return {
       success: true,
-      message: 'Export functionality to be implemented',
-      count: customers.length,
+      message: `Exported ${customers.length} customer(s)`,
+      data: {
+        csvContent,
+        filename: `customers-export-${new Date().toISOString().split('T')[0]}.csv`,
+        count: customers.length,
+      },
     };
   }
 
   /**
-   * Import customers from CSV (stub for future implementation)
+   * Import customers from CSV
    */
-  async importCustomers(tenantId: string, file: any) {
-    // TODO: Implement CSV import functionality
-    // This would typically:
-    // 1. Parse CSV file using csv-parser or similar
-    // 2. Validate each row
-    // 3. Create customers in batch
-    // 4. Handle errors and duplicates
-    // 5. Return import summary
+  async importCustomers(tenantId: string, csvContent: string) {
+    const results: any[] = [];
+    const errors: any[] = [];
 
-    return {
-      success: true,
-      message: 'Import functionality to be implemented',
-      summary: {
-        processed: 0,
-        successful: 0,
-        failed: 0,
-        errors: [],
-      },
-    };
+    return new Promise((resolve) => {
+      // Create a readable stream from CSV content
+      const stream = Readable.from([csvContent]);
+
+      stream
+        .pipe(csvParser())
+        .on('data', (row) => {
+          results.push(row);
+        })
+        .on('end', async () => {
+          let successful = 0;
+          let failed = 0;
+
+          for (const row of results) {
+            try {
+              // Validate required fields
+              if (!row.Name || !row.Email) {
+                errors.push({
+                  row: row,
+                  error: 'Missing required fields: Name or Email',
+                });
+                failed++;
+                continue;
+              }
+
+              // Check for duplicate email
+              const existingCustomer = await this.prisma.customer.findFirst({
+                where: {
+                  tenantId,
+                  email: row.Email,
+                },
+              });
+
+              if (existingCustomer) {
+                errors.push({
+                  row: row,
+                  error: `Customer with email ${row.Email} already exists`,
+                });
+                failed++;
+                continue;
+              }
+
+              // Build billing address if available
+              const billingAddress: any = {};
+              if (row['Billing Street']) billingAddress.street = row['Billing Street'];
+              if (row['Billing City']) billingAddress.city = row['Billing City'];
+              if (row['Billing Province']) billingAddress.province = row['Billing Province'];
+              if (row['Billing Postal Code']) billingAddress.postalCode = row['Billing Postal Code'];
+              if (row['Billing Country']) billingAddress.country = row['Billing Country'];
+
+              // Create customer
+              await this.prisma.customer.create({
+                data: {
+                  tenantId,
+                  name: row.Name,
+                  email: row.Email,
+                  phone: row.Phone || null,
+                  status: (row.Status as any) || 'ACTIVE',
+                  type: (row.Type as any) || 'COMMERCIAL',
+                  billingAddress: Object.keys(billingAddress).length > 0 ? billingAddress : null,
+                  notes: row.Notes || null,
+                },
+              });
+
+              successful++;
+            } catch (error) {
+              errors.push({
+                row: row,
+                error: error.message || 'Unknown error',
+              });
+              failed++;
+            }
+          }
+
+          resolve({
+            success: true,
+            message: `Processed ${results.length} row(s)`,
+            summary: {
+              processed: results.length,
+              successful,
+              failed,
+              errors: errors.slice(0, 50), // Limit errors in response
+            },
+          });
+        })
+        .on('error', (error) => {
+          resolve({
+            success: false,
+            message: 'Failed to parse CSV file',
+            error: error.message,
+          });
+        });
+    });
   }
 }

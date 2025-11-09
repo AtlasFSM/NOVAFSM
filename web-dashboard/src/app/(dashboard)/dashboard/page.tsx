@@ -230,11 +230,40 @@ export default function DashboardPage() {
         description: `Preparing ${format} export`,
       });
 
-      // TODO: Implement actual export API call
-      // const response = await apiClient.post('/dashboard/export', {
-      //   format,
-      //   dataTypes: ['FULL_REPORT'],
-      // }, { responseType: 'blob' });
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/dashboard/export`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('access_token')}`,
+        },
+        body: JSON.stringify({
+          format,
+          dataTypes: ['stats', 'charts'],
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Export failed');
+      }
+
+      // Get the blob and download it
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+
+      const fileExtensions: Record<string, string> = {
+        CSV: 'csv',
+        EXCEL: 'xlsx',
+        PDF: 'pdf',
+        JSON: 'json',
+      };
+
+      a.download = `dashboard-export-${new Date().toISOString().split('T')[0]}.${fileExtensions[format]}`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
 
       toast({
         title: 'Export ready',

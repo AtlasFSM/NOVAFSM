@@ -59,8 +59,8 @@ export class CustomersController {
 
   @Get('export')
   @Roles('ADMIN', 'DISPATCHER')
-  @ApiOperation({ summary: 'Export customers to CSV (stub)' })
-  @ApiResponse({ status: 200, description: 'Export initiated' })
+  @ApiOperation({ summary: 'Export customers to CSV' })
+  @ApiResponse({ status: 200, description: 'Customers exported successfully' })
   @ApiResponse({ status: 403, description: 'Forbidden' })
   async exportCustomers(@CurrentUser() user: CurrentUserPayload) {
     return this.customersService.exportCustomers(user.tenantId);
@@ -68,14 +68,15 @@ export class CustomersController {
 
   @Post('import')
   @Roles('ADMIN', 'DISPATCHER')
-  @ApiOperation({ summary: 'Import customers from CSV (stub)' })
-  @ApiResponse({ status: 201, description: 'Import initiated' })
+  @ApiOperation({ summary: 'Import customers from CSV' })
+  @ApiResponse({ status: 201, description: 'Import completed successfully' })
+  @ApiResponse({ status: 400, description: 'Invalid CSV format' })
   @ApiResponse({ status: 403, description: 'Forbidden' })
   async importCustomers(
     @CurrentUser() user: CurrentUserPayload,
-    @Body() file: any,
+    @Body() body: { csvContent: string },
   ) {
-    return this.customersService.importCustomers(user.tenantId, file);
+    return this.customersService.importCustomers(user.tenantId, body.csvContent);
   }
 
   @Get(':id')

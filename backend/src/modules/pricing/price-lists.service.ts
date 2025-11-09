@@ -8,6 +8,7 @@ import { PrismaService } from '../../common/prisma/prisma.service';
 import { CreatePriceListDto } from './dto/create-price-list.dto';
 import { UpdatePriceListDto } from './dto/update-price-list.dto';
 import { QueryPriceListDto } from './dto/query-price-list.dto';
+import { AssignPriceListToCustomersDto, UnassignPriceListFromCustomersDto } from './dto/assign-price-list.dto';
 
 @Injectable()
 export class PriceListsService {
@@ -297,6 +298,220 @@ export class PriceListsService {
     return {
       success: true,
       data: priceList,
+    };
+  }
+
+  /**
+   * Assign a price list to specific customers
+   */
+  async assignToCustomers(
+    tenantId: string,
+    priceListId: string,
+    userId: string,
+    dto: AssignPriceListToCustomersDto,
+  ) {
+    // Check if price list exists and is active
+    const priceList = await this.prisma.priceList.findFirst({
+      where: { id: priceListId, tenantId },
+    });
+
+    if (!priceList) {
+      throw new NotFoundException(`Price list with ID ${priceListId} not found`);
+    }
+
+    if (priceList.status !== 'ACTIVE') {
+      throw new BadRequestException(
+        'Cannot assign an archived price list to customers',
+      );
+    }
+
+    // Verify all customers exist and belong to this tenant
+    const customers = await this.prisma.customer.findMany({
+      where: {
+        tenantId,
+        id: { in: dto.customerIds },
+      },
+    });
+
+    if (customers.length !== dto.customerIds.length) {
+      throw new BadRequestException('One or more customers not found');
+    }
+
+    // Get existing assignments
+    const existingAssignments = await this.prisma.priceListCustomer.findMany({
+      where: {
+        tenantId,
+        priceListId,
+        customerId: { in: dto.customerIds },
+      },
+    });
+
+    const existingCustomerIds = new Set(
+      existingAssignments.map((a) => a.customerId),
+    );
+
+    // Filter out customers that are already assigned
+    const newCustomerIds = dto.customerIds.filter(
+      (id) => !existingCustomerIds.has(id),
+    );
+
+    if (newCustomerIds.length === 0) {
+      return {
+        success: true,
+        message: 'All customers are already assigned to this price list',
+        data: {
+          alreadyAssigned: dto.customerIds.length,
+          newlyAssigned: 0,
+        },
+      };
+    }
+
+    // Create new assignments
+    const assignments = await this.prisma.priceListCustomer.createMany({
+      data: newCustomerIds.map((customerId) => ({
+        tenantId,
+        priceListId,
+        customerId,
+        assignedBy: userId,
+        notes: dto.notes,
+      })),
+    });
+
+    return {
+      success: true,
+      message: `Price list assigned to ${newCustomerIds.length} customer(s)`,
+      data: {
+        alreadyAssigned: existingCustomerIds.size,
+        newlyAssigned: assignments.count,
+      },
+    };
+  }
+
+  /**
+   * Unassign a price list from specific customers
+   */
+  async unassignFromCustomers(
+    tenantId: string,
+    priceListId: string,
+    dto: UnassignPriceListFromCustomersDto,
+  ) {
+    // Check if price list exists
+    const priceList = await this.prisma.priceList.findFirst({
+      where: { id: priceListId, tenantId },
+    });
+
+    if (!priceList) {
+      throw new NotFoundException(`Price list with ID ${priceListId} not found`);
+    }
+
+    // Delete assignments
+    const result = await this.prisma.priceListCustomer.deleteMany({
+      where: {
+        tenantId,
+        priceListId,
+        customerId: { in: dto.customerIds },
+      },
+    });
+
+    return {
+      success: true,
+      message: `Price list unassigned from ${result.count} customer(s)`,
+      data: {
+        unassigned: result.count,
+      },
+    };
+  }
+
+  /**
+   * Get all customers assigned to a price list
+   */
+  async getAssignedCustomers(tenantId: string, priceListId: string) {
+    // Check if price list exists
+    const priceList = await this.prisma.priceList.findFirst({
+      where: { id: priceListId, tenantId },
+    });
+
+    if (!priceList) {
+      throw new NotFoundException(`Price list with ID ${priceListId} not found`);
+    }
+
+    const assignments = await this.prisma.priceListCustomer.findMany({
+      where: {
+        tenantId,
+        priceListId,
+      },
+      include: {
+        customer: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            phone: true,
+            status: true,
+          },
+        },
+      },
+      orderBy: {
+        assignedAt: 'desc',
+      },
+    });
+
+    return {
+      success: true,
+      data: assignments.map((assignment) => ({
+        assignmentId: assignment.id,
+        assignedAt: assignment.assignedAt,
+        assignedBy: assignment.assignedBy,
+        notes: assignment.notes,
+        customer: assignment.customer,
+      })),
+    };
+  }
+
+  /**
+   * Get all price lists assigned to a specific customer
+   */
+  async getCustomerPriceLists(tenantId: string, customerId: string) {
+    // Check if customer exists
+    const customer = await this.prisma.customer.findFirst({
+      where: { id: customerId, tenantId },
+    });
+
+    if (!customer) {
+      throw new NotFoundException(`Customer with ID ${customerId} not found`);
+    }
+
+    const assignments = await this.prisma.priceListCustomer.findMany({
+      where: {
+        tenantId,
+        customerId,
+      },
+      include: {
+        priceList: {
+          select: {
+            id: true,
+            name: true,
+            description: true,
+            currency: true,
+            status: true,
+            isDefault: true,
+          },
+        },
+      },
+      orderBy: {
+        assignedAt: 'desc',
+      },
+    });
+
+    return {
+      success: true,
+      data: assignments.map((assignment) => ({
+        assignmentId: assignment.id,
+        assignedAt: assignment.assignedAt,
+        assignedBy: assignment.assignedBy,
+        notes: assignment.notes,
+        priceList: assignment.priceList,
+      })),
     };
   }
 }
