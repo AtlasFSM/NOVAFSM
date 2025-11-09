@@ -123,6 +123,7 @@
       "!**/*.dto.ts"
     ],
     "coverageDirectory": "../coverage",
+    "coverageReporters": ["json", "lcov", "text", "text-summary", "json-summary"],
     "testEnvironment": "node",
     "moduleNameMapper": {
       "^src/(.*)$": "<rootDir>/$1"
