@@ -30,6 +30,7 @@ import { AssetsModule } from './modules/assets/assets.module';
 import { DocumentsModule } from './modules/documents/documents.module';
 import { FormsModule } from './modules/forms/forms.module';
 import { TechniciansModule } from './modules/technicians/technicians.module';
+import { DashboardModule } from './modules/dashboard/dashboard.module';
 
 @Module({
   imports: [
@@ -89,6 +90,7 @@ import { TechniciansModule } from './modules/technicians/technicians.module';
     DocumentsModule,
     FormsModule,
     TechniciansModule,
+    DashboardModule,
   ],
   providers: [
     // Global guards
