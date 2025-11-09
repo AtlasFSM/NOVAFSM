@@ -73,6 +73,18 @@ export default function ReportsPage() {
     },
   });
 
+  const { data: jobCompletionTrend, isLoading: trendLoading } = useQuery({
+    queryKey: ['job-completion-trend', dateRange],
+    queryFn: async () => {
+      const response = await apiClient.get('/api/v1/dashboard/job-completion-trend', {
+        params: {
+          dateRangePreset: getDateRangePreset(dateRange),
+        },
+      });
+      return response.data;
+    },
+  });
+
   // Transform backend data to match chart formats
   const revenueData = dashboardCharts ? {
     totalRevenue: dashboardStats?.revenueThisMonth?.amount || 0,
@@ -90,7 +102,11 @@ export default function ReportsPage() {
 
   const jobsData = dashboardCharts ? {
     totalJobs: dashboardStats?.activeJobs?.count || 0,
-    trend: [], // TODO: Map job completion trend
+    trend: (jobCompletionTrend || []).map((t: any) => ({
+      date: new Date(t.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      completed: t.completed || 0,
+      scheduled: t.scheduled || 0,
+    })),
     byStatus: (dashboardCharts.jobsByStatus || []).map((j: any) => ({
       name: j.status,
       value: j.count,
@@ -115,7 +131,7 @@ export default function ReportsPage() {
     })),
   } : null;
 
-  const isLoading = statsLoading || chartsLoading;
+  const isLoading = statsLoading || chartsLoading || trendLoading;
 
   const handleExport = (format: 'csv' | 'pdf') => {
     // In production, this would trigger export via backend API

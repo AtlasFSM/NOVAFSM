@@ -3,6 +3,9 @@ import { ConfigService } from '@nestjs/config';
 import { Queue, Worker, Job } from 'bullmq';
 import { OutboxService } from './outbox.service';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { EmailService } from '../email/email.service';
+import { JobsGateway } from '../jobs/jobs-gateway';
+import { PushNotificationService } from '../notifications/push-notification.service';
 
 /**
  * Outbox Processor - Processes outbox events using BullMQ
@@ -18,6 +21,9 @@ export class OutboxProcessor implements OnModuleInit {
     private outboxService: OutboxService,
     private prisma: PrismaService,
     private configService: ConfigService,
+    private emailService: EmailService,
+    private jobsGateway: JobsGateway,
+    private pushNotificationService: PushNotificationService,
   ) {}
 
   async onModuleInit() {
@@ -142,7 +148,7 @@ export class OutboxProcessor implements OnModuleInit {
 
           if (job) {
             // Emit WebSocket event to all connected clients in tenant
-            // TODO: Implement WebSocket emission when JobsGateway is available
+            this.jobsGateway.emitJobUpdated(job, tenantId);
             this.logger.log(`WebSocket notification sent for job ${job.number}`);
           }
         } catch (error) {
@@ -165,13 +171,25 @@ export class OutboxProcessor implements OnModuleInit {
 
           if (job && job.assignedTechnician) {
             // Send email notification to technician
-            // TODO: Integrate with EmailService when available
+            await this.emailService.sendJobAssignmentEmail(
+              job.assignedTechnician.email,
+              `${job.assignedTechnician.firstName} ${job.assignedTechnician.lastName}`,
+              job,
+            );
             this.logger.log(
               `Email notification sent to ${job.assignedTechnician.email} for job ${job.number}`
             );
 
+            // Emit WebSocket event
+            this.jobsGateway.emitJobAssigned(job, tenantId, job.assignedTechnician.id);
+
             // Send push notification
-            // TODO: Integrate with push notification service
+            await this.pushNotificationService.sendJobAssignmentNotification(
+              job.assignedTechnician.id,
+              job.number,
+              job.title,
+              job.scheduledStart ? new Date(job.scheduledStart) : undefined,
+            );
             this.logger.log(`Push notification sent to technician ${job.assignedTechnician.firstName}`);
           }
         } catch (error) {
@@ -193,19 +211,27 @@ export class OutboxProcessor implements OnModuleInit {
 
           if (job) {
             // Send customer satisfaction survey
-            // TODO: Integrate with EmailService
+            await this.emailService.sendJobCompletionEmail(
+              job.customer.email,
+              job.customer.name,
+              job,
+            );
             this.logger.log(
               `Completion notification sent to customer ${job.customer.name} for job ${job.number}`
             );
 
+            // Emit WebSocket event
+            this.jobsGateway.emitJobUpdated(job, tenantId, job.assignedToId || undefined);
+
             // Auto-generate invoice if configured
-            const shouldAutoInvoice = await this.prisma.organization.findUnique({
+            const org = await this.prisma.organization.findUnique({
               where: { id: tenantId },
               select: { id: true }, // TODO: Add autoGenerateInvoice config field
             });
 
-            if (shouldAutoInvoice) {
-              this.logger.log(`Auto-generating invoice for completed job ${job.number}`);
+            if (org) {
+              // TODO: Implement auto-invoice generation
+              this.logger.log(`Auto-invoice check for completed job ${job.number}`);
             }
           }
         } catch (error) {
@@ -226,19 +252,23 @@ export class OutboxProcessor implements OnModuleInit {
           });
 
           if (quote) {
+            // Send approval notification to customer
+            await this.emailService.sendQuoteApprovalEmail(
+              quote.customer.email,
+              quote.customer.name,
+              quote,
+            );
+            this.logger.log(`Approval notification sent to customer ${quote.customer.name}`);
+
             // Check if auto-convert is enabled
-            const shouldAutoConvert = true; // TODO: Get from tenant settings
+            // TODO: Get from tenant settings
+            const shouldAutoConvert = false;
 
             if (shouldAutoConvert) {
               // Create job from approved quote
               this.logger.log(`Auto-converting quote ${quote.number} to job`);
-
               // TODO: Call JobsService.createFromQuote when available
-              // await this.jobsService.createFromQuote(quote.id, tenantId);
             }
-
-            // Send approval notification to customer
-            this.logger.log(`Approval notification sent to customer ${quote.customer.name}`);
           }
         } catch (error) {
           this.logger.error(`Failed to process quote.approved event: ${error.message}`);
@@ -254,12 +284,18 @@ export class OutboxProcessor implements OnModuleInit {
             include: {
               customer: true,
               job: true,
+              lineItems: true,
+              organization: true,
             },
           });
 
           if (invoice) {
             // Generate PDF and send email
-            // TODO: Integrate with InvoiceService.generatePDF and EmailService
+            await this.emailService.sendInvoiceEmail(
+              invoice.customer.email,
+              invoice.customer.name,
+              invoice,
+            );
             this.logger.log(
               `Invoice ${invoice.number} email sent to ${invoice.customer.email}`
             );

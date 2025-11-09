@@ -362,6 +362,230 @@ export class EmailService {
   }
 
   /**
+   * Send job assignment notification to technician
+   */
+  async sendJobAssignmentEmail(
+    technicianEmail: string,
+    technicianName: string,
+    jobData: any,
+  ): Promise<void> {
+    const subject = `New Job Assignment: ${jobData.number}`;
+    const html = this.getJobAssignmentTemplate(technicianName, jobData);
+
+    await this.sendEmail({
+      to: technicianEmail,
+      subject,
+      html,
+    });
+  }
+
+  /**
+   * Send job completion notification to customer
+   */
+  async sendJobCompletionEmail(
+    customerEmail: string,
+    customerName: string,
+    jobData: any,
+  ): Promise<void> {
+    const subject = `Job Completed: ${jobData.number}`;
+    const html = this.getJobCompletionTemplate(customerName, jobData);
+
+    await this.sendEmail({
+      to: customerEmail,
+      subject,
+      html,
+    });
+  }
+
+  /**
+   * Send quote approval notification
+   */
+  async sendQuoteApprovalEmail(
+    customerEmail: string,
+    customerName: string,
+    quoteData: any,
+  ): Promise<void> {
+    const subject = `Quote Approved: ${quoteData.number}`;
+    const html = this.getQuoteApprovalTemplate(customerName, quoteData);
+
+    await this.sendEmail({
+      to: customerEmail,
+      subject,
+      html,
+    });
+  }
+
+  /**
+   * Get job assignment email template
+   */
+  private getJobAssignmentTemplate(technicianName: string, jobData: any): string {
+    const scheduledStart = jobData.scheduledStart
+      ? new Date(jobData.scheduledStart).toLocaleString('en-US', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+        })
+      : 'To be scheduled';
+
+    return `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <style>
+            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { background-color: #3b82f6; color: white; padding: 20px; text-align: center; }
+            .content { padding: 30px 20px; background-color: #f9fafb; }
+            .footer { padding: 20px; text-align: center; font-size: 12px; color: #6b7280; }
+            .info-box { background-color: white; padding: 15px; border-radius: 6px; margin: 15px 0; }
+            .label { font-weight: bold; color: #6b7280; }
+            .priority-high { color: #ef4444; font-weight: bold; }
+            .priority-urgent { color: #dc2626; font-weight: bold; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1>New Job Assignment</h1>
+            </div>
+            <div class="content">
+              <p>Hi ${technicianName},</p>
+              <p>You have been assigned a new job:</p>
+
+              <div class="info-box">
+                <p><span class="label">Job Number:</span> ${jobData.number}</p>
+                <p><span class="label">Title:</span> ${jobData.title}</p>
+                <p><span class="label">Customer:</span> ${jobData.customer?.name || 'N/A'}</p>
+                <p><span class="label">Scheduled:</span> ${scheduledStart}</p>
+                <p><span class="label">Priority:</span> <span class="${jobData.priority === 'URGENT' ? 'priority-urgent' : jobData.priority === 'HIGH' ? 'priority-high' : ''}">${jobData.priority}</span></p>
+                ${jobData.site ? `<p><span class="label">Location:</span> ${jobData.site.address || jobData.site.name}</p>` : ''}
+              </div>
+
+              ${jobData.description ? `
+                <div class="info-box">
+                  <p><span class="label">Description:</span></p>
+                  <p>${jobData.description}</p>
+                </div>
+              ` : ''}
+
+              <p>Please review the job details in the mobile app and ensure you're prepared for the scheduled time.</p>
+            </div>
+            <div class="footer">
+              <p>This is an automated notification from NovaFSM</p>
+            </div>
+          </div>
+        </body>
+      </html>
+    `;
+  }
+
+  /**
+   * Get job completion email template
+   */
+  private getJobCompletionTemplate(customerName: string, jobData: any): string {
+    const completedAt = jobData.completedAt
+      ? new Date(jobData.completedAt).toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+        })
+      : 'Today';
+
+    return `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <style>
+            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { background-color: #10b981; color: white; padding: 20px; text-align: center; }
+            .content { padding: 30px 20px; background-color: #f9fafb; }
+            .footer { padding: 20px; text-align: center; font-size: 12px; color: #6b7280; }
+            .info-box { background-color: white; padding: 15px; border-radius: 6px; margin: 15px 0; }
+            .label { font-weight: bold; color: #6b7280; }
+            .button { display: inline-block; padding: 12px 24px; background-color: #3b82f6; color: white; text-decoration: none; border-radius: 6px; margin-top: 20px; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1>Job Completed</h1>
+            </div>
+            <div class="content">
+              <p>Dear ${customerName},</p>
+              <p>We're pleased to inform you that your service job has been completed.</p>
+
+              <div class="info-box">
+                <p><span class="label">Job Number:</span> ${jobData.number}</p>
+                <p><span class="label">Title:</span> ${jobData.title}</p>
+                <p><span class="label">Completed:</span> ${completedAt}</p>
+                ${jobData.assignedTechnician ? `<p><span class="label">Technician:</span> ${jobData.assignedTechnician.firstName} ${jobData.assignedTechnician.lastName}</p>` : ''}
+              </div>
+
+              <p>We hope you're satisfied with our service. Your feedback is important to us!</p>
+
+              <p>An invoice will be sent to you shortly.</p>
+
+              <p>Thank you for choosing our services!</p>
+            </div>
+            <div class="footer">
+              <p>This is an automated notification from NovaFSM</p>
+            </div>
+          </div>
+        </body>
+      </html>
+    `;
+  }
+
+  /**
+   * Get quote approval email template
+   */
+  private getQuoteApprovalTemplate(customerName: string, quoteData: any): string {
+    return `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <style>
+            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { background-color: #10b981; color: white; padding: 20px; text-align: center; }
+            .content { padding: 30px 20px; background-color: #f9fafb; }
+            .footer { padding: 20px; text-align: center; font-size: 12px; color: #6b7280; }
+            .info-box { background-color: white; padding: 15px; border-radius: 6px; margin: 15px 0; }
+            .label { font-weight: bold; color: #6b7280; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1>Quote Approved - Thank You!</h1>
+            </div>
+            <div class="content">
+              <p>Dear ${customerName},</p>
+              <p>Thank you for approving quote ${quoteData.number}!</p>
+
+              <div class="info-box">
+                <p><span class="label">Quote Number:</span> ${quoteData.number}</p>
+                <p><span class="label">Title:</span> ${quoteData.title || 'Service Quote'}</p>
+                <p><span class="label">Amount:</span> ${this.formatCurrency(quoteData.total, quoteData.currency)}</p>
+              </div>
+
+              <p>We will begin scheduling your service shortly and will keep you updated on the progress.</p>
+
+              <p>We look forward to serving you!</p>
+            </div>
+            <div class="footer">
+              <p>This is an automated notification from NovaFSM</p>
+            </div>
+          </div>
+        </body>
+      </html>
+    `;
+  }
+
+  /**
    * Format currency
    */
   private formatCurrency(amount: number | string, currency: string): string {
