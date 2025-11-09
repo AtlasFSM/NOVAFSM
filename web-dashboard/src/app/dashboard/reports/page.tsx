@@ -91,7 +91,12 @@ export default function ReportsPage() {
     activeCustomers: dashboardStats?.totalCustomers?.count || 0,
     avgJobValue: dashboardCharts.topCustomers?.[0]?.avgJobValue || 0,
     trend: dashboardCharts.revenueTrend || [],
-    byServiceType: [], // TODO: Add service type breakdown to backend
+    byServiceType: (dashboardCharts.serviceTypeAnalytics || []).map((s: any) => ({
+      name: s.serviceType,
+      value: s.totalRevenue,
+      percentage: s.percentage,
+      jobCount: s.jobCount,
+    })),
     topCustomers: (dashboardCharts.topCustomers || []).map((c: any, idx: number) => ({
       name: c.name,
       jobs: c.jobsCount,
@@ -111,7 +116,13 @@ export default function ReportsPage() {
       name: j.status,
       value: j.count,
     })),
-    avgCompletionTime: [], // TODO: Add job type breakdown to backend
+    avgCompletionTime: (dashboardCharts.jobTypeAnalytics || []).map((j: any) => ({
+      type: j.jobType,
+      hours: j.avgCompletionHours,
+      min: j.minCompletionHours,
+      max: j.maxCompletionHours,
+      count: j.completedCount,
+    })),
   } : null;
 
   const technicianData = dashboardCharts ? {

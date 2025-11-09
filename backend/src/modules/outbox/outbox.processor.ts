@@ -6,6 +6,7 @@ import { PrismaService } from '../../common/prisma/prisma.service';
 import { EmailService } from '../email/email.service';
 import { JobsGateway } from '../jobs/jobs-gateway';
 import { PushNotificationService } from '../notifications/push-notification.service';
+import { SmsNotificationService } from '../notifications/sms-notification.service';
 
 /**
  * Outbox Processor - Processes outbox events using BullMQ
@@ -24,6 +25,7 @@ export class OutboxProcessor implements OnModuleInit {
     private emailService: EmailService,
     private jobsGateway: JobsGateway,
     private pushNotificationService: PushNotificationService,
+    private smsNotificationService: SmsNotificationService,
   ) {}
 
   async onModuleInit() {
@@ -191,6 +193,18 @@ export class OutboxProcessor implements OnModuleInit {
               job.scheduledStart ? new Date(job.scheduledStart) : undefined,
             );
             this.logger.log(`Push notification sent to technician ${job.assignedTechnician.firstName}`);
+
+            // Send SMS notification if technician has phone number
+            if (job.assignedTechnician.phone) {
+              await this.smsNotificationService.sendJobAssignmentSms(
+                job.assignedTechnician.phone,
+                `${job.assignedTechnician.firstName} ${job.assignedTechnician.lastName}`,
+                job.number,
+                job.title,
+                job.scheduledStart ? new Date(job.scheduledStart) : undefined,
+              );
+              this.logger.log(`SMS notification sent to technician ${job.assignedTechnician.phone}`);
+            }
           }
         } catch (error) {
           this.logger.error(`Failed to process job.assigned event: ${error.message}`);

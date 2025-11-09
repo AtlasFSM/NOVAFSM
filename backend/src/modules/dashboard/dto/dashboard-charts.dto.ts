@@ -145,6 +145,40 @@ export class InventoryMetrics {
   lowStockItems: number;
 }
 
+export class ServiceTypeAnalytics {
+  @ApiProperty()
+  serviceType: string;
+
+  @ApiProperty()
+  jobCount: number;
+
+  @ApiProperty()
+  totalRevenue: number;
+
+  @ApiProperty()
+  avgRevenue: number;
+
+  @ApiProperty()
+  percentage: number;
+}
+
+export class JobTypeAnalytics {
+  @ApiProperty()
+  jobType: string;
+
+  @ApiProperty()
+  completedCount: number;
+
+  @ApiProperty()
+  avgCompletionHours: number;
+
+  @ApiProperty()
+  minCompletionHours: number;
+
+  @ApiProperty()
+  maxCompletionHours: number;
+}
+
 export class DashboardChartsDto {
   @ApiProperty({ type: [JobsByStatusChart] })
   jobsByStatus: JobsByStatusChart[];
@@ -169,4 +203,10 @@ export class DashboardChartsDto {
 
   @ApiPropertyOptional({ type: [InventoryMetrics] })
   inventoryMetrics?: InventoryMetrics[];
+
+  @ApiPropertyOptional({ type: [ServiceTypeAnalytics] })
+  serviceTypeAnalytics?: ServiceTypeAnalytics[];
+
+  @ApiPropertyOptional({ type: [JobTypeAnalytics] })
+  jobTypeAnalytics?: JobTypeAnalytics[];
 }

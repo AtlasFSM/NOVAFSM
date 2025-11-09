@@ -371,12 +371,16 @@ export class AnalyticsService {
       recentActivity,
       technicianPerformance,
       topCustomers,
+      serviceTypeAnalytics,
+      jobTypeAnalytics,
     ] = await Promise.all([
       this.getJobsByStatus(tenantId, startDate, endDate),
       this.getRevenueTrend(tenantId, startDate, endDate),
       this.getRecentActivity(tenantId, 10),
       this.getTechnicianPerformance(tenantId, startDate, endDate, filter),
       this.getTopCustomers(tenantId, startDate, endDate, 10),
+      this.getServiceTypeAnalytics(tenantId, startDate, endDate),
+      this.getJobTypeAnalytics(tenantId, startDate, endDate),
     ]);
 
     return {
@@ -385,6 +389,8 @@ export class AnalyticsService {
       recentActivity,
       technicianPerformance,
       topCustomers,
+      serviceTypeAnalytics,
+      jobTypeAnalytics,
     };
   }
 
@@ -724,5 +730,159 @@ export class AnalyticsService {
       scheduled: Number(item.scheduled),
       cancelled: Number(item.cancelled),
     }));
+  }
+
+  /**
+   * Get service type analytics
+   * Categorizes jobs based on title keywords and calculates revenue
+   */
+  async getServiceTypeAnalytics(tenantId: string, startDate: Date, endDate: Date): Promise<any[]> {
+    // Get all jobs with invoices in date range
+    const jobs = await this.prisma.job.findMany({
+      where: {
+        tenantId,
+        createdAt: { gte: startDate, lte: endDate },
+        status: 'COMPLETED',
+      },
+      include: {
+        invoice: {
+          select: {
+            total: true,
+          },
+        },
+      },
+    });
+
+    // Categorize jobs by service type (inferred from title)
+    const serviceCategories: Record<string, { jobs: number; revenue: number }> = {
+      Installation: { jobs: 0, revenue: 0 },
+      Repair: { jobs: 0, revenue: 0 },
+      Maintenance: { jobs: 0, revenue: 0 },
+      Inspection: { jobs: 0, revenue: 0 },
+      Other: { jobs: 0, revenue: 0 },
+    };
+
+    jobs.forEach((job) => {
+      const title = job.title.toLowerCase();
+      const revenue = job.invoice?.total.toNumber() || 0;
+
+      if (title.includes('install') || title.includes('installation') || title.includes('setup')) {
+        serviceCategories.Installation.jobs++;
+        serviceCategories.Installation.revenue += revenue;
+      } else if (title.includes('repair') || title.includes('fix') || title.includes('broken')) {
+        serviceCategories.Repair.jobs++;
+        serviceCategories.Repair.revenue += revenue;
+      } else if (
+        title.includes('maintenance') ||
+        title.includes('service') ||
+        title.includes('check') ||
+        title.includes('tune')
+      ) {
+        serviceCategories.Maintenance.jobs++;
+        serviceCategories.Maintenance.revenue += revenue;
+      } else if (title.includes('inspect') || title.includes('assessment') || title.includes('survey')) {
+        serviceCategories.Inspection.jobs++;
+        serviceCategories.Inspection.revenue += revenue;
+      } else {
+        serviceCategories.Other.jobs++;
+        serviceCategories.Other.revenue += revenue;
+      }
+    });
+
+    // Calculate total revenue for percentages
+    const totalRevenue = Object.values(serviceCategories).reduce((sum, cat) => sum + cat.revenue, 0);
+
+    // Transform to array format
+    return Object.entries(serviceCategories)
+      .filter(([, data]) => data.jobs > 0) // Only include categories with jobs
+      .map(([serviceType, data]) => ({
+        serviceType,
+        jobCount: data.jobs,
+        totalRevenue: data.revenue,
+        avgRevenue: data.jobs > 0 ? data.revenue / data.jobs : 0,
+        percentage: totalRevenue > 0 ? (data.revenue / totalRevenue) * 100 : 0,
+      }))
+      .sort((a, b) => b.totalRevenue - a.totalRevenue);
+  }
+
+  /**
+   * Get job type analytics (completion time by category)
+   * Analyzes actual completion times vs scheduled times
+   */
+  async getJobTypeAnalytics(tenantId: string, startDate: Date, endDate: Date): Promise<any[]> {
+    // Get completed jobs with completion times
+    const jobs = await this.prisma.job.findMany({
+      where: {
+        tenantId,
+        status: 'COMPLETED',
+        completedAt: { gte: startDate, lte: endDate },
+        scheduledStart: { not: null },
+      },
+      select: {
+        title: true,
+        scheduledStart: true,
+        completedAt: true,
+      },
+    });
+
+    // Categorize by job type
+    const jobTypeCategories: Record<
+      string,
+      { completedCount: number; completionHours: number[]; }
+    > = {
+      Installation: { completedCount: 0, completionHours: [] },
+      Repair: { completedCount: 0, completionHours: [] },
+      Maintenance: { completedCount: 0, completionHours: [] },
+      Inspection: { completedCount: 0, completionHours: [] },
+      Emergency: { completedCount: 0, completionHours: [] },
+      Other: { completedCount: 0, completionHours: [] },
+    };
+
+    jobs.forEach((job) => {
+      if (!job.scheduledStart || !job.completedAt) return;
+
+      const title = job.title.toLowerCase();
+      const hours = (job.completedAt.getTime() - new Date(job.scheduledStart).getTime()) / (1000 * 60 * 60);
+
+      let category = 'Other';
+      if (title.includes('install') || title.includes('installation') || title.includes('setup')) {
+        category = 'Installation';
+      } else if (title.includes('repair') || title.includes('fix') || title.includes('broken')) {
+        category = 'Repair';
+      } else if (
+        title.includes('maintenance') ||
+        title.includes('service') ||
+        title.includes('check') ||
+        title.includes('tune')
+      ) {
+        category = 'Maintenance';
+      } else if (title.includes('inspect') || title.includes('assessment')) {
+        category = 'Inspection';
+      } else if (title.includes('emergency') || title.includes('urgent')) {
+        category = 'Emergency';
+      }
+
+      jobTypeCategories[category].completedCount++;
+      jobTypeCategories[category].completionHours.push(hours);
+    });
+
+    // Transform to array format with statistics
+    return Object.entries(jobTypeCategories)
+      .filter(([, data]) => data.completedCount > 0)
+      .map(([jobType, data]) => {
+        const hours = data.completionHours;
+        const avg = hours.reduce((sum, h) => sum + h, 0) / hours.length;
+        const min = Math.min(...hours);
+        const max = Math.max(...hours);
+
+        return {
+          jobType,
+          completedCount: data.completedCount,
+          avgCompletionHours: Number(avg.toFixed(2)),
+          minCompletionHours: Number(min.toFixed(2)),
+          maxCompletionHours: Number(max.toFixed(2)),
+        };
+      })
+      .sort((a, b) => b.completedCount - a.completedCount);
   }
 }
