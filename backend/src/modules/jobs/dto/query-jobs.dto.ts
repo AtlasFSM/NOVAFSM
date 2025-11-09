@@ -15,7 +15,7 @@ export class QueryJobsDto {
   @ApiPropertyOptional({ description: 'Filter by assigned technician ID' })
   @IsOptional()
   @IsUUID()
-  assignedTechnicianId?: string;
+  assignedToId?: string;
 
   @ApiPropertyOptional({ description: 'Filter by customer ID' })
   @IsOptional()

@@ -23,7 +23,7 @@ import {
   ApiHeader,
 } from '@nestjs/swagger';
 import { JobsService } from './jobs.service';
-import { ScheduleService } from './schedule.service';
+import { TechnicianScheduleService } from './schedule.service';
 import { JobsGateway } from './jobs-gateway';
 import { CreateJobDto } from './dto/create-job.dto';
 import { UpdateJobDto } from './dto/update-job.dto';
@@ -46,7 +46,7 @@ import { RolesGuard } from '../../common/guards/roles.guard';
 export class JobsController {
   constructor(
     private readonly jobsService: JobsService,
-    private readonly scheduleService: ScheduleService,
+    private readonly scheduleService: TechnicianScheduleService,
     private readonly jobsGateway: JobsGateway,
   ) {}
 
@@ -58,7 +58,7 @@ export class JobsController {
   @ApiOperation({ summary: 'List all jobs with pagination and filters' })
   @ApiResponse({ status: 200, description: 'Jobs retrieved successfully' })
   @ApiQuery({ name: 'status', required: false, description: 'Filter by job status' })
-  @ApiQuery({ name: 'assignedTechnicianId', required: false, description: 'Filter by technician' })
+  @ApiQuery({ name: 'assignedToId', required: false, description: 'Filter by technician' })
   @ApiQuery({ name: 'customerId', required: false, description: 'Filter by customer' })
   @ApiQuery({ name: 'from', required: false, description: 'Filter jobs from this date' })
   @ApiQuery({ name: 'to', required: false, description: 'Filter jobs to this date' })
@@ -70,7 +70,7 @@ export class JobsController {
   ) {
     // If technician, only show their own jobs
     if (user.role === 'TECHNICIAN') {
-      query.assignedTechnicianId = user.userId;
+      query.assignedToId = user.userId;
     }
 
     return this.jobsService.findAll(query);
@@ -92,7 +92,7 @@ export class JobsController {
     const job = await this.jobsService.findOne(id);
 
     // Technicians can only view their own jobs
-    if (user.role === 'TECHNICIAN' && job.assignedTechnicianId !== user.userId) {
+    if (user.role === 'TECHNICIAN' && job.assignedToId !== user.userId) {
       throw new BadRequestException('You can only view jobs assigned to you');
     }
 
@@ -116,8 +116,8 @@ export class JobsController {
     const job = await this.jobsService.create(dto, user.tenantId);
 
     // Emit WebSocket event if technician was assigned
-    if (job.assignedTechnicianId) {
-      this.jobsGateway.emitJobAssigned(job, user.tenantId, job.assignedTechnicianId);
+    if (job.assignedToId) {
+      this.jobsGateway.emitJobAssigned(job, user.tenantId, job.assignedToId);
     }
 
     return job;
@@ -158,12 +158,12 @@ export class JobsController {
 
     // Technicians can only update their own jobs
     if (user.role === 'TECHNICIAN') {
-      if (currentJob.assignedTechnicianId !== user.userId) {
+      if (currentJob.assignedToId !== user.userId) {
         throw new BadRequestException('You can only update jobs assigned to you');
       }
 
       // Technicians cannot change certain fields
-      delete dto.assignedTechnicianId;
+      delete dto.assignedToId;
       delete dto.siteId;
     }
 
@@ -177,13 +177,13 @@ export class JobsController {
         user.tenantId,
         oldStatus,
         updatedJob.status,
-        updatedJob.assignedTechnicianId || undefined,
+        updatedJob.assignedToId || undefined,
       );
     } else {
       this.jobsGateway.emitJobUpdated(
         updatedJob,
         user.tenantId,
-        updatedJob.assignedTechnicianId || undefined,
+        updatedJob.assignedToId || undefined,
       );
     }
 
@@ -256,7 +256,7 @@ export class JobsController {
     const currentJob = await this.jobsService.findOne(id);
 
     // Technicians can only start their own jobs
-    if (user.role === 'TECHNICIAN' && currentJob.assignedTechnicianId !== user.userId) {
+    if (user.role === 'TECHNICIAN' && currentJob.assignedToId !== user.userId) {
       throw new BadRequestException('You can only start jobs assigned to you');
     }
 
@@ -269,7 +269,7 @@ export class JobsController {
       user.tenantId,
       oldStatus,
       job.status,
-      job.assignedTechnicianId || undefined,
+      job.assignedToId || undefined,
     );
 
     return job;
@@ -294,7 +294,7 @@ export class JobsController {
     const currentJob = await this.jobsService.findOne(id);
 
     // Technicians can only complete their own jobs
-    if (user.role === 'TECHNICIAN' && currentJob.assignedTechnicianId !== user.userId) {
+    if (user.role === 'TECHNICIAN' && currentJob.assignedToId !== user.userId) {
       throw new BadRequestException('You can only complete jobs assigned to you');
     }
 
@@ -307,7 +307,7 @@ export class JobsController {
       user.tenantId,
       oldStatus,
       job.status,
-      job.assignedTechnicianId || undefined,
+      job.assignedToId || undefined,
     );
 
     return job;
@@ -339,7 +339,7 @@ export class JobsController {
       user.tenantId,
       oldStatus,
       job.status,
-      job.assignedTechnicianId || undefined,
+      job.assignedToId || undefined,
     );
 
     return job;

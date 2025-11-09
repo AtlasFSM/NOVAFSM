@@ -30,7 +30,7 @@ export class ScheduleService {
     };
 
     if (dto.technicianId) {
-      where.assignedTechnicianId = dto.technicianId;
+      where.assignedToId = dto.technicianId;
     }
 
     if (dto.status) {
@@ -74,11 +74,11 @@ export class ScheduleService {
     const scheduleByTechnician = new Map<string, any[]>();
 
     jobs.forEach((job) => {
-      if (job.assignedTechnicianId) {
-        if (!scheduleByTechnician.has(job.assignedTechnicianId)) {
-          scheduleByTechnician.set(job.assignedTechnicianId, []);
+      if (job.assignedToId) {
+        if (!scheduleByTechnician.has(job.assignedToId)) {
+          scheduleByTechnician.set(job.assignedToId, []);
         }
-        scheduleByTechnician.get(job.assignedTechnicianId)!.push(job);
+        scheduleByTechnician.get(job.assignedToId)!.push(job);
       }
     });
 
@@ -100,7 +100,7 @@ export class ScheduleService {
 
     const where: any = {
       tenantId,
-      assignedTechnicianId: technicianId,
+      assignedToId: technicianId,
       scheduledStart: {
         lt: new Date(endDate),
       },
@@ -216,7 +216,7 @@ export class ScheduleService {
     const jobs = await this.prisma.job.findMany({
       where: {
         tenantId,
-        assignedTechnicianId: technicianId,
+        assignedToId: technicianId,
         scheduledStart: {
           gte: new Date(startDate),
           lte: new Date(endDate),
@@ -284,7 +284,7 @@ export class ScheduleService {
     const jobs = await this.prisma.job.findMany({
       where: {
         tenantId,
-        assignedTechnicianId: technicianId,
+        assignedToId: technicianId,
         scheduledStart: {
           gte: dayStart,
           lte: dayEnd,
@@ -379,7 +379,7 @@ export class ScheduleService {
     const jobs = await this.prisma.job.findMany({
       where: {
         tenantId,
-        assignedTechnicianId: technicianId,
+        assignedToId: technicianId,
         scheduledStart: {
           gte: startOfDay,
           lte: endOfDay,

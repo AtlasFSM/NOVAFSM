@@ -37,8 +37,8 @@ export interface TechnicianSchedule {
  * Manages technician schedules and conflict detection
  */
 @Injectable()
-export class ScheduleService {
-  private readonly logger = new Logger(ScheduleService.name);
+export class TechnicianScheduleService {
+  private readonly logger = new Logger(TechnicianScheduleService.name);
 
   constructor(private readonly prisma: PrismaService) {}
 
@@ -73,7 +73,7 @@ export class ScheduleService {
     // Get all jobs for technician in the date range
     const jobs = await this.prisma.job.findMany({
       where: {
-        assignedTechnicianId: technicianId,
+        assignedToId: technicianId,
         scheduledStart: {
           gte: from,
           lte: to,
@@ -147,7 +147,7 @@ export class ScheduleService {
     excludeJobId?: string,
   ): Promise<ScheduleConflict[]> {
     const where: any = {
-      assignedTechnicianId: technicianId,
+      assignedToId: technicianId,
       status: {
         in: ['SCHEDULED', 'IN_PROGRESS'],
       },

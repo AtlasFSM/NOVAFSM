@@ -46,7 +46,7 @@ export class UpdateJobDto {
   @ApiPropertyOptional({ description: 'Assigned technician ID' })
   @IsOptional()
   @IsUUID()
-  assignedTechnicianId?: string;
+  assignedToId?: string;
 
   @ApiPropertyOptional({ description: 'Site ID' })
   @IsOptional()

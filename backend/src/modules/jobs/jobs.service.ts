@@ -31,7 +31,7 @@ export class JobsService {
    * Find all jobs with pagination and filters
    */
   async findAll(query: QueryJobsDto) {
-    const { status, assignedTechnicianId, customerId, from, to, page = 1, limit = 20 } = query;
+    const { status, assignedToId, customerId, from, to, page = 1, limit = 20 } = query;
 
     const where: any = {};
 
@@ -39,8 +39,8 @@ export class JobsService {
       where.status = status;
     }
 
-    if (assignedTechnicianId) {
-      where.assignedTechnicianId = assignedTechnicianId;
+    if (assignedToId) {
+      where.assignedToId = assignedToId;
     }
 
     if (customerId) {
@@ -200,9 +200,9 @@ export class JobsService {
     }
 
     // If technician assigned, check for schedule conflicts
-    if (dto.assignedTechnicianId && dto.scheduledStart && dto.scheduledEnd) {
+    if (dto.assignedToId && dto.scheduledStart && dto.scheduledEnd) {
       const hasConflict = await this.checkScheduleConflict(
-        dto.assignedTechnicianId,
+        dto.assignedToId,
         new Date(dto.scheduledStart),
         new Date(dto.scheduledEnd),
       );
@@ -235,7 +235,7 @@ export class JobsService {
         priority: dto.priority || 'MEDIUM',
         scheduledStart: dto.scheduledStart ? new Date(dto.scheduledStart) : null,
         scheduledEnd: dto.scheduledEnd ? new Date(dto.scheduledEnd) : null,
-        assignedTechnicianId: dto.assignedTechnicianId,
+        assignedToId: dto.assignedToId,
         slaMinutes: dto.slaMinutes,
         slaDueAt,
         notes: dto.notes,
@@ -280,9 +280,9 @@ export class JobsService {
     }
 
     // If technician assigned, check for schedule conflicts
-    if (dto.assignedTechnicianId && dto.scheduledStart && dto.scheduledEnd) {
+    if (dto.assignedToId && dto.scheduledStart && dto.scheduledEnd) {
       const hasConflict = await this.checkScheduleConflict(
-        dto.assignedTechnicianId,
+        dto.assignedToId,
         new Date(dto.scheduledStart),
         new Date(dto.scheduledEnd),
         id, // Exclude current job from conflict check
@@ -409,7 +409,7 @@ export class JobsService {
     const updatedJob = await this.prisma.job.update({
       where: { id },
       data: {
-        assignedTechnicianId: dto.technicianId,
+        assignedToId: dto.technicianId,
         scheduledStart: dto.scheduledStart ? new Date(dto.scheduledStart) : undefined,
         scheduledEnd: dto.scheduledEnd ? new Date(dto.scheduledEnd) : undefined,
         status: 'SCHEDULED',
@@ -457,7 +457,7 @@ export class JobsService {
       );
     }
 
-    if (!job.assignedTechnicianId) {
+    if (!job.assignedToId) {
       throw new BadRequestException('Cannot start job without assigned technician');
     }
 
@@ -602,7 +602,7 @@ export class JobsService {
     excludeJobId?: string,
   ): Promise<boolean> {
     const where: any = {
-      assignedTechnicianId: technicianId,
+      assignedToId: technicianId,
       status: {
         in: ['SCHEDULED', 'IN_PROGRESS'],
       },

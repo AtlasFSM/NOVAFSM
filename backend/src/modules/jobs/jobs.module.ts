@@ -3,7 +3,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JobsController } from './jobs.controller';
 import { JobsService } from './jobs.service';
-import { ScheduleService } from './schedule.service';
+import { TechnicianScheduleService } from './schedule.service';
 import { JobsGateway } from './jobs-gateway';
 import { PrismaModule } from '../../common/prisma/prisma.module';
 import { SequenceService } from '../../common/services/sequence.service';
@@ -31,7 +31,7 @@ import { SequenceService } from '../../common/services/sequence.service';
     }),
   ],
   controllers: [JobsController],
-  providers: [JobsService, ScheduleService, JobsGateway, SequenceService],
-  exports: [JobsService, ScheduleService, JobsGateway],
+  providers: [JobsService, TechnicianScheduleService, JobsGateway, SequenceService],
+  exports: [JobsService, TechnicianScheduleService, JobsGateway],
 })
 export class JobsModule {}

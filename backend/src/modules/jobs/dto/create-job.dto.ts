@@ -82,7 +82,7 @@ export class CreateJobDto {
   @ApiPropertyOptional({ description: 'Assigned technician ID' })
   @IsOptional()
   @IsUUID()
-  assignedTechnicianId?: string;
+  assignedToId?: string;
 
   @ApiPropertyOptional({ description: 'SLA duration in minutes' })
   @IsOptional()

@@ -358,7 +358,7 @@ model Job {
   scheduledEnd         DateTime?
   actualStart          DateTime?
   actualEnd            DateTime?
-  assignedTechnicianId String?   @db.Uuid
+  assignedToId         String?   @db.Uuid
   slaMinutes           Int? // SLA in minutes
   slaDueAt             DateTime?
   version              Int       @default(1)
@@ -375,7 +375,7 @@ model Job {
   customer           Customer         @relation(fields: [customerId], references: [id], onDelete: Restrict)
   site               Site?            @relation(fields: [siteId], references: [id], onDelete: SetNull)
   quote              Quote?           @relation(fields: [quoteId], references: [id], onDelete: SetNull)
-  assignedTechnician User?            @relation("AssignedTechnician", fields: [assignedTechnicianId], references: [id], onDelete: SetNull)
+  assignedTechnician User?            @relation("AssignedTechnician", fields: [assignedToId], references: [id], onDelete: SetNull)
   timeEntries        TimeEntry[]
   expenseEntries     ExpenseEntry[]
   inventoryUsages    InventoryUsage[]
@@ -386,7 +386,7 @@ model Job {
 
   @@unique([tenantId, number])
   @@index([tenantId, status])
-  @@index([tenantId, assignedTechnicianId])
+  @@index([tenantId, assignedToId])
   @@index([tenantId, scheduledStart])
   @@index([tenantId, customerId])
   @@index([tenantId, createdAt])
