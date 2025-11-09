@@ -4,7 +4,7 @@ import { SequenceService } from '../../common/services/sequence.service';
 import { EmailService } from '../email/email.service';
 import { CreateInvoiceDto } from './dto/create-invoice.dto';
 import { UpdateInvoiceDto } from './dto/update-invoice.dto';
-import * as PDFDocument from 'pdfkit';
+import PDFDocument from 'pdfkit';
 import { ConfigService } from '@nestjs/config';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 

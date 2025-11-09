@@ -9,7 +9,7 @@ import { UpdateCustomerDto } from './dto/update-customer.dto';
 import { QueryCustomersDto } from './dto/query-customers.dto';
 import { createObjectCsvStringifier } from 'csv-writer';
 import { Readable } from 'stream';
-import * as csvParser from 'csv-parser';
+import csvParser from 'csv-parser';
 
 @Injectable()
 export class CustomersService {
