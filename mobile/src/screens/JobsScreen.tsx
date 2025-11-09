@@ -23,7 +23,7 @@ interface Job {
 }
 
 export default function JobsScreen({ navigation }: any) {
-  const { jobs, isLoading, refetch } = useJobs();
+  const { jobs, isLoading, refreshJobs } = useJobs();
   const { syncJobs, isSyncing } = useSync();
   const [isOnline, setIsOnline] = useState(true);
 
@@ -38,7 +38,7 @@ export default function JobsScreen({ navigation }: any) {
     if (isOnline) {
       await syncJobs();
     }
-    await refetch();
+    await refreshJobs();
   };
 
   const getStatusColor = (status: string) => {

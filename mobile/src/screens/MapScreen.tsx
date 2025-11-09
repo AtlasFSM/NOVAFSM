@@ -15,7 +15,7 @@ import { Job } from '../types';
 export default function MapScreen() {
   const [location, setLocation] = useState<Location.LocationObject | null>(null);
   const [loading, setLoading] = useState(true);
-  const { data: jobs = [], isLoading } = useJobs();
+  const { jobs = [], isLoading } = useJobs();
 
   useEffect(() => {
     (async () => {
