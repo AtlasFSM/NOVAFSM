@@ -1,0 +1,16 @@
+{
+  "project": "NoVaFSM",
+  "version": "1.0.0",
+  "description": "Multi-tenant Field Service Management Platform",
+  "permissions": {
+    "allow": [
+      "Bash(npm run *)",
+      "Bash(npx prisma *)",
+      "Bash(docker-compose *)",
+      "Bash(git *)"
+    ]
+  },
+  "env": {
+    "NODE_ENV": "development"
+  }
+}
