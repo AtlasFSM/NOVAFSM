@@ -16,6 +16,8 @@
     "build:all": "npm run build --workspaces --if-present",
     "test:all": "npm run test --workspaces --if-present",
     "lint:all": "npm run lint --workspaces --if-present",
+    "lint": "pnpm -r run lint",
+    "protocol:check": "node scripts/protocol-check.mjs",
     "clean": "npm run clean --workspaces --if-present && rm -rf node_modules",
     "infra:up": "docker compose -f infrastructure/docker-compose.dev.yml up -d",
     "infra:down": "docker compose -f infrastructure/docker-compose.dev.yml down",

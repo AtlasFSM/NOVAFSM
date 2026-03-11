@@ -1,0 +1,104 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master, 'claude/**']
+  pull_request:
+    branches: [main, master]
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  # ============================================================
+  # Matrix: code-quality checks across multiple tools/runtimes
+  # Job names rendered by GitHub as:
+  #   CI / checks (bun, lint, bunx @biomejs/biome check src)
+  #   CI / checks (node, lint, pnpm lint)
+  #   CI / checks (node, protocol, pnpm protocol:check)
+  #
+  # NOTE: The original failing CI used "bunx biome check src" but the bare
+  # "biome" npm package (v0.3.x) is an unrelated env-variable tool.  The
+  # correct invocation for the Biome linter is "bunx @biomejs/biome …".
+  # ============================================================
+  checks:
+    name: checks
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # -------------------------------------------------------
+          # 1. Biome lint – run via Bun for fast cold-start
+          # -------------------------------------------------------
+          # bunx @biomejs/biome is the correct package; the bare "biome"
+          # npm package is an unrelated env-variable manager (v0.3.x).
+          - runtime: bun
+            category: lint
+            command: bunx @biomejs/biome check src
+
+          # -------------------------------------------------------
+          # 2. ESLint across all workspaces via pnpm
+          # -------------------------------------------------------
+          - runtime: node
+            category: lint
+            command: pnpm lint
+
+          # -------------------------------------------------------
+          # 3. Protocol consistency check
+          # -------------------------------------------------------
+          - runtime: node
+            category: protocol
+            command: pnpm protocol:check
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # ---- Runtime setup ----------------------------------------
+      - name: Setup Bun
+        if: matrix.runtime == 'bun'
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Setup Node.js
+        if: matrix.runtime == 'node'
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      # ---- pnpm (needed for node jobs) --------------------------
+      - name: Setup pnpm
+        if: matrix.runtime == 'node'
+        uses: pnpm/action-setup@v4
+        with:
+          version: '9'
+          run_install: false
+
+      # ---- Install dependencies ---------------------------------
+      - name: Install dependencies (bun)
+        if: matrix.runtime == 'bun'
+        # Biome is self-contained via bunx; no package install needed.
+        # We only install if there are bun-managed packages at root.
+        run: echo "Bun runtime – using bunx for on-demand binary download"
+
+      - name: Install root dependencies (node)
+        if: matrix.runtime == 'node'
+        run: pnpm install --frozen-lockfile --ignore-scripts
+        # --ignore-scripts avoids running prepare hooks (Prisma generate, etc.)
+        # that would fail without a database in CI.
+
+      # ---- Backend workspace: generate Prisma types (lint only) -
+      - name: Generate Prisma client (lint target)
+        if: matrix.runtime == 'node' && matrix.category == 'lint'
+        working-directory: backend
+        run: npx --yes prisma generate
+        continue-on-error: true
+        # Prisma generate is best-effort here; ESLint needs the generated
+        # types for @prisma/client imports but will degrade gracefully.
+
+      # ---- Run the matrix command --------------------------------
+      - name: Run – ${{ matrix.command }}
+        run: ${{ matrix.command }}
