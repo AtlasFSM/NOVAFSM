@@ -162,16 +162,42 @@ export class JobsController {
         throw new BadRequestException('You can only update jobs assigned to you');
       }
 
-      // Technicians cannot change certain fields
-      delete dto.assignedTechnicianId;
-      delete dto.customerId;
-      delete dto.siteId;
+      // SECURITY: Build an explicit allow-list of fields technicians may change.
+      // Deleting properties from a DTO is unreliable (TypeScript class instances
+      // retain their prototype; a spread/assign can restore deleted keys).
+      // Constructing a fresh object with only the permitted fields is safe.
+      const technicianAllowed: UpdateJobDto = {};
+      if (dto.status !== undefined) technicianAllowed.status = dto.status;
+      if (dto.notes !== undefined) technicianAllowed.notes = dto.notes;
+      if (dto.scheduledStart !== undefined) technicianAllowed.scheduledStart = dto.scheduledStart;
+      if (dto.scheduledEnd !== undefined) technicianAllowed.scheduledEnd = dto.scheduledEnd;
+
+      const oldStatus = currentJob.status;
+      const updatedJob = await this.jobsService.update(id, technicianAllowed, version);
+
+      if (technicianAllowed.status && technicianAllowed.status !== oldStatus) {
+        this.jobsGateway.emitJobStatusChanged(
+          updatedJob,
+          user.tenantId,
+          oldStatus,
+          updatedJob.status,
+          updatedJob.assignedTechnicianId || undefined,
+        );
+      } else {
+        this.jobsGateway.emitJobUpdated(
+          updatedJob,
+          user.tenantId,
+          updatedJob.assignedTechnicianId || undefined,
+        );
+      }
+
+      return updatedJob;
     }
 
     const oldStatus = currentJob.status;
     const updatedJob = await this.jobsService.update(id, dto, version);
 
-    // Emit WebSocket events
+    // Emit WebSocket events (ADMIN / DISPATCHER path)
     if (dto.status && dto.status !== oldStatus) {
       this.jobsGateway.emitJobStatusChanged(
         updatedJob,

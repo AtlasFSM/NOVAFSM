@@ -13,7 +13,8 @@ export interface ErrorResponse {
   statusCode: number;
   errorCode: string;
   message: string;
-  details?: any;
+  // details is NEVER sent in production to prevent information leakage
+  details?: string;
   timestamp: string;
   path: string;
   requestId?: string;
@@ -21,21 +22,30 @@ export interface ErrorResponse {
 
 /**
  * Global HTTP Exception Filter
- * Transforms all exceptions into consistent error response format
+ *
+ * Security design:
+ *   - Stack traces are NEVER forwarded to HTTP clients.
+ *   - Validation field details are only surfaced in non-production.
+ *   - Internal error messages (from unhandled errors) are replaced with a
+ *     generic message in the response; the real message is logged server-side.
  */
 @Catch()
 export class HttpExceptionFilter implements ExceptionFilter {
   private readonly logger = new Logger(HttpExceptionFilter.name);
+  private readonly isProd = process.env.NODE_ENV === 'production';
 
   catch(exception: unknown, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
-    const response = response<Request, Response>(ctx.getResponse());
+    // FIXED: original code was `response<Request, Response>(ctx.getResponse())`
+    // which attempted to call the local variable as a generic function —
+    // a TypeError crash on every exception path.
+    const response = ctx.getResponse<Response>();
     const request = ctx.getRequest<Request>();
 
     let status = HttpStatus.INTERNAL_SERVER_ERROR;
     let message = 'Internal server error';
     let errorCode = 'INTERNAL_ERROR';
-    let details: any = undefined;
+    let details: string | undefined;
 
     if (exception instanceof HttpException) {
       status = exception.getStatus();
@@ -47,13 +57,22 @@ export class HttpExceptionFilter implements ExceptionFilter {
         message = Array.isArray(exceptionResponse.message)
           ? exceptionResponse.message.join(', ')
           : exceptionResponse.message;
-        details = exceptionResponse.details || exceptionResponse.error;
+
+        // Only include field-level validation details in non-production
+        if (!this.isProd) {
+          const rawDetails = exceptionResponse.details ?? exceptionResponse.error;
+          if (rawDetails) {
+            details =
+              typeof rawDetails === 'string' ? rawDetails : JSON.stringify(rawDetails);
+          }
+        }
       }
 
       errorCode = this.mapStatusToErrorCode(status);
     } else if (exception instanceof Error) {
-      message = exception.message;
+      // Log the real message server-side but never forward it to clients
       this.logger.error(`Unhandled error: ${exception.message}`, exception.stack);
+      // message stays 'Internal server error'
     } else {
       this.logger.error(`Unknown exception type: ${JSON.stringify(exception)}`);
     }
@@ -66,16 +85,12 @@ export class HttpExceptionFilter implements ExceptionFilter {
       details,
       timestamp: new Date().toISOString(),
       path: request.url,
-      requestId: request.headers['x-request-id'] as string,
+      requestId: request.headers['x-request-id'] as string | undefined,
     };
 
-    // Redact PII from logs in production
-    const loggableError = { ...errorResponse };
-    if (process.env.NODE_ENV === 'production') {
-      delete loggableError.details;
-    }
-
-    this.logger.warn(`HTTP ${status} Error: ${JSON.stringify(loggableError)}`);
+    this.logger.warn(
+      `HTTP ${status} [${errorCode}] ${request.method} ${request.url} — ${message}`,
+    );
 
     response.status(status).json(errorResponse);
   }
@@ -93,6 +108,6 @@ export class HttpExceptionFilter implements ExceptionFilter {
       503: 'SERVICE_UNAVAILABLE',
     };
 
-    return codeMap[status] || 'UNKNOWN_ERROR';
+    return codeMap[status] ?? 'UNKNOWN_ERROR';
   }
 }

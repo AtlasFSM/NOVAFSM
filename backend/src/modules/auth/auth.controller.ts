@@ -14,6 +14,8 @@ export class AuthController {
 
   @Public()
   @Post('register')
+  // 3 registrations per hour — limits account-creation spam & email enumeration
+  @Throttle({ default: { limit: 3, ttl: 3_600_000 } })
   @ApiOperation({ summary: 'Register new organization and admin user' })
   @ApiResponse({ status: 201, description: 'Registration successful' })
   @ApiResponse({ status: 409, description: 'Email already exists' })
@@ -24,7 +26,7 @@ export class AuthController {
   @Public()
   @Post('login')
   @HttpCode(200)
-  @Throttle({ default: { limit: 5, ttl: 60000 } }) // 5 attempts per minute
+  @Throttle({ default: { limit: 5, ttl: 60_000 } }) // 5 attempts per minute
   @ApiOperation({ summary: 'Login with email and password' })
   @ApiResponse({ status: 200, description: 'Login successful' })
   @ApiResponse({ status: 401, description: 'Invalid credentials' })
@@ -36,6 +38,8 @@ export class AuthController {
   @Public()
   @Post('refresh')
   @HttpCode(200)
+  // 10 refresh attempts per minute per IP — prevents token-cycling brute-force
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @ApiOperation({ summary: 'Refresh access token' })
   @ApiResponse({ status: 200, description: 'Token refreshed' })
   @ApiResponse({ status: 401, description: 'Invalid refresh token' })

@@ -3,10 +3,12 @@ import {
   UnauthorizedException,
   ConflictException,
   BadRequestException,
+  Logger,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
+import * as crypto from 'crypto';
 import * as OTPAuth from 'otpauth';
 import * as QRCode from 'qrcode';
 import { PrismaService } from '../../common/prisma/prisma.service';
@@ -14,11 +16,22 @@ import { RegisterDto, LoginDto, EnableMfaDto } from './dto/register.dto';
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private prisma: PrismaService,
     private jwtService: JwtService,
     private configService: ConfigService,
   ) {}
+
+  /**
+   * Deterministic SHA-256 digest of a token string.
+   * Used for blacklist storage/lookup.  bcrypt.hash() generates a new random
+   * salt on every call, so looking up bcrypt.hash(token) always misses.
+   */
+  private tokenDigest(token: string): string {
+    return crypto.createHash('sha256').update(token).digest('hex');
+  }
 
   /**
    * Register new organization and admin user
@@ -168,10 +181,12 @@ export class AuthService {
         algorithms: ['RS256'],
       });
 
-      // Check if token is blacklisted
-      const hashedToken = await bcrypt.hash(refreshToken, 10);
+      // Check if token is blacklisted using a deterministic SHA-256 digest.
+      // bcrypt.hash() uses a random salt each call, so two hashes of the same
+      // token are always different — looking up by bcrypt hash always missed.
+      const digest = this.tokenDigest(refreshToken);
       const isBlacklisted = await this.prisma.tokenBlacklist.findUnique({
-        where: { token: hashedToken },
+        where: { token: digest },
       });
 
       if (isBlacklisted) {
@@ -206,13 +221,14 @@ export class AuthService {
    * Logout - blacklist refresh token
    */
   async logout(userId: string, refreshToken: string) {
-    const hashedToken = await bcrypt.hash(refreshToken, 10);
+    // Store a deterministic SHA-256 digest so the lookup in refresh() matches
+    const digest = this.tokenDigest(refreshToken);
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 7); // Match refresh token expiry
 
     await this.prisma.tokenBlacklist.create({
       data: {
-        token: hashedToken,
+        token: digest,
         expiresAt,
       },
     });
@@ -364,28 +380,48 @@ export class AuthService {
   }
 
   /**
-   * JWKS endpoint for JWT public key
+   * JWKS endpoint for JWT public key.
+   *
+   * SECURITY NOTE: The `n` field MUST be the Base64url-encoded RSA modulus,
+   * NOT a base64 encoding of the entire PEM string.  The original code
+   * returned `Buffer.from(pemString).toString('base64')` which is malformed
+   * and will fail JWK validation in any standards-compliant JWT library.
+   *
+   * TODO (before production): Replace this stub with a proper JWK conversion
+   * using a library such as `node-jose` or `jwk-to-pem` (in reverse).
+   * Example:
+   *   import { createPublicKey } from 'crypto';
+   *   const key = createPublicKey(pemString);
+   *   const jwk = key.export({ format: 'jwk' }) as any;
+   *   return { keys: [{ ...jwk, use: 'sig', alg: 'RS256', kid: 'novafsm-key-1' }] };
    */
   getJWKS() {
     const publicKey = this.configService.get<string>('jwt.publicKey');
 
     if (!publicKey) {
-      throw new Error('JWT public key not configured');
+      throw new BadRequestException('JWT public key not configured');
     }
 
-    // Note: In production, generate proper JWK format
-    // This is a simplified version for MVP
-    return {
-      keys: [
-        {
-          kty: 'RSA',
-          use: 'sig',
-          alg: 'RS256',
-          kid: 'novafsm-key-1',
-          n: Buffer.from(publicKey).toString('base64'),
-        },
-      ],
-    };
+    try {
+      // Node ≥ 15: export the public key in JWK format natively
+      const { createPublicKey } = require('crypto') as typeof import('crypto');
+      const keyObject = createPublicKey(publicKey);
+      const jwk = keyObject.export({ format: 'jwk' }) as Record<string, string>;
+
+      return {
+        keys: [
+          {
+            ...jwk,
+            use: 'sig',
+            alg: 'RS256',
+            kid: 'novafsm-key-1',
+          },
+        ],
+      };
+    } catch (err) {
+      this.logger.error('Failed to export public key as JWK', err);
+      throw new BadRequestException('Invalid JWT public key configuration');
+    }
   }
 
   // ============ Private Helper Methods ============

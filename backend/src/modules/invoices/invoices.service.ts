@@ -19,18 +19,25 @@ export class InvoicesService {
   ) {}
 
   /**
-   * Find all invoices with pagination and filtering
+   * Find all invoices with pagination and filtering.
+   *
+   * SECURITY: tenantId MUST always be passed from the controller (extracted
+   * from the JWT) and injected explicitly here.  The Prisma middleware also
+   * injects it, but relying solely on middleware creates a defence-in-depth
+   * gap: if the middleware is ever skipped (raw queries, $transaction, etc.)
+   * a user from Tenant A could query Tenant B's invoices (IDOR).
    */
   async findAll(params: {
+    tenantId: string;
     skip?: number;
     take?: number;
     customerId?: string;
     jobId?: string;
     status?: string;
   }) {
-    const { skip = 0, take = 50, customerId, jobId, status } = params;
+    const { tenantId, skip = 0, take = 50, customerId, jobId, status } = params;
 
-    const where: any = {};
+    const where: any = { tenantId };
 
     if (customerId) {
       where.customerId = customerId;
@@ -91,11 +98,16 @@ export class InvoicesService {
   }
 
   /**
-   * Find invoice by ID
+   * Find invoice by ID.
+   *
+   * SECURITY: Uses findFirst with an explicit tenantId check rather than
+   * findUnique by ID alone.  findUnique ignores Prisma middleware-injected
+   * tenantId filters on compound-key models in some versions, so an explicit
+   * where clause is the only safe approach.
    */
-  async findOne(id: string) {
-    const invoice = await this.prisma.invoice.findUnique({
-      where: { id },
+  async findOne(id: string, tenantId: string) {
+    const invoice = await this.prisma.invoice.findFirst({
+      where: { id, tenantId },
       include: {
         customer: {
           select: {

@@ -17,6 +17,7 @@ import { CreateInvoiceDto } from './dto/create-invoice.dto';
 import { UpdateInvoiceDto } from './dto/update-invoice.dto';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { RolesGuard } from '../../common/guards/roles.guard';
+import { CurrentUser, CurrentUserPayload } from '../../common/decorators/current-user.decorator';
 
 @ApiTags('invoices')
 @Controller('invoices')
@@ -35,13 +36,17 @@ export class InvoicesController {
   @ApiQuery({ name: 'jobId', required: false, type: String })
   @ApiQuery({ name: 'status', required: false, enum: ['DRAFT', 'SENT', 'PAID', 'OVERDUE', 'CANCELLED'] })
   async findAll(
+    @CurrentUser() user: CurrentUserPayload,
     @Query('skip', new ParseIntPipe({ optional: true })) skip?: number,
     @Query('take', new ParseIntPipe({ optional: true })) take?: number,
     @Query('customerId') customerId?: string,
     @Query('jobId') jobId?: string,
     @Query('status') status?: string,
   ) {
+    // SECURITY: tenantId is extracted from the JWT (not the query string).
+    // A user cannot forge a different tenantId this way.
     return this.invoicesService.findAll({
+      tenantId: user.tenantId,
       skip,
       take,
       customerId,
@@ -55,8 +60,12 @@ export class InvoicesController {
   @ApiOperation({ summary: 'Get invoice by ID' })
   @ApiResponse({ status: 200, description: 'Invoice retrieved successfully' })
   @ApiResponse({ status: 404, description: 'Invoice not found' })
-  async findOne(@Param('id', ParseUUIDPipe) id: string) {
-    return this.invoicesService.findOne(id);
+  async findOne(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    // SECURITY: tenantId scopes the lookup — prevents cross-tenant IDOR
+    return this.invoicesService.findOne(id, user.tenantId);
   }
 
   @Get(':id/pdf')
@@ -64,7 +73,12 @@ export class InvoicesController {
   @ApiOperation({ summary: 'Generate PDF for invoice' })
   @ApiResponse({ status: 200, description: 'PDF generated successfully' })
   @ApiResponse({ status: 404, description: 'Invoice not found' })
-  async generatePDF(@Param('id', ParseUUIDPipe) id: string) {
+  async generatePDF(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    // Verify ownership before generating PDF
+    await this.invoicesService.findOne(id, user.tenantId);
     const result = await this.invoicesService.generatePDF(id);
     return {
       success: true,
